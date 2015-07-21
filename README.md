@@ -34,6 +34,8 @@ We also assume you are using a "microsoft" account (an account you have at https
 If you are using the github deployment hooks, you will also need the following variable setup as above (because it seems azure isn't using auth tokens like a good boy):
   * $githubPassword
 
+Some Azure commands make use of grep and gawk - so make sure you have these unix tools in your path. (Easiest way on windows is to do the "full path" option when installing msysgit as they are shipped in the Git/bin directory.
+
 ### CAREFUL!
 
 Your .publishsettings file has an access certificate in it. Keep this and your github password and auth tokens secure. Don't commit them to version control!

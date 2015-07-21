@@ -194,7 +194,7 @@ Function Redeploy-AzureSiteCurrentDeployment {
     param ([string]$sitename)
     FunctionPreflight $sitename
 
-    $currentDeployId = (azure site deployment list $sitename | grep -i active | awk '{print $3}')
+    $currentDeployId = (azure site deployment list $sitename | grep -i active | gawk '{print $3}')
 
     if ($currentDeployId -eq $null) {
         throw "didn't find an active deployment. Has this site been deployed yet?"
