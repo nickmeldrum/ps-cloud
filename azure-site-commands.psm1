@@ -87,7 +87,7 @@ Function Create-AzureSite {
     echo "creating site..."
     azure site create --location $azureLocation $sitename
     
-    Set-AzureConfig $sitename $siteAdminPassword
+    Set-AzureSiteConfig $sitename $siteAdminPassword
 
     echo "setting up deployment..."
     azure site deployment github --githubusername $githubUsername --githubpassword $githubPassword --githubrepository "$githubUsername/$githubRepo" $sitename 
@@ -137,7 +137,7 @@ Function Delete-AzureSite {
     echo "deleting site..."
     azure site delete -q $sitename
 
-    if ($githubRepo -ne $null) {
+    if (-Not ([string]::IsNullOrWhiteSpace($githubRepo))) {
         Delete-GithubWebhook $githubRepo "$sitename.scm.azurewebsites.net"
     }
 }
