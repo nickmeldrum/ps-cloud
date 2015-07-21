@@ -37,8 +37,9 @@ If you are using the github deployment hooks, you will also need the following v
   * $githubPassword
 
 Some Azure commands make use of grep and gawk - so make sure you have these unix tools in your path. (Easiest way on windows is to do the "full path" option when installing msysgit as they are shipped in the Git/bin directory.
-### CAREFUL!
 
+
+### CAREFUL!
 
 Your .publishsettings file has an access certificate in it. Keep this and your github password and auth tokens secure. Don't commit them to version control!
 
@@ -48,9 +49,8 @@ Your .publishsettings file has an access certificate in it. Keep this and your g
 
 These azure website commands will setup a azure website hooked into a github repo, so that when you push to a branch, the azure website will automatically get built and deployed. You can also use them to setup a "test/ staging" deployment. It defaults to always pushing to a staging deployment from the "master" branch and will push to the production website when you push to the "release" branch.
 
-TODO:!
-
 ## Known issues
 
-TODO:!
+  * All azure commands currently have "North Europe" baked in as the location - if you use another location, just change the hardcoded value in the .psm1's for now.
+  * I still have some of "my website" specific stuff like config in the azure commands, they will be removed and allowed to be passed in when I get around to it!
 
