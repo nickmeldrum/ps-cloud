@@ -31,16 +31,22 @@ We also assume you have installed the azure ps module and the azure xpat cli, bu
 
 We also assume you are using a "microsoft" account (an account you have at https://login.live.com/) instead of using AD or an "organizational" account and that you have downloaded your .publishsettings file and put it in the executing directory.
 
+Get your .publishsettings file by typing "azure account download" (this uses the azure xpat cli installed by typing ("npm install azure-cli -g" - prereqs: node and npm)
+
 If you are using the github deployment hooks, you will also need the following variable setup as above (because it seems azure isn't using auth tokens like a good boy):
   * $githubPassword
 
 Some Azure commands make use of grep and gawk - so make sure you have these unix tools in your path. (Easiest way on windows is to do the "full path" option when installing msysgit as they are shipped in the Git/bin directory.
-
 ### CAREFUL!
+
 
 Your .publishsettings file has an access certificate in it. Keep this and your github password and auth tokens secure. Don't commit them to version control!
 
 ## Usage
+
+### Azure Website Github Continuous Deployment:
+
+These azure website commands will setup a azure website hooked into a github repo, so that when you push to a branch, the azure website will automatically get built and deployed. You can also use them to setup a "test/ staging" deployment. It defaults to always pushing to a staging deployment from the "master" branch and will push to the production website when you push to the "release" branch.
 
 TODO:!
 
