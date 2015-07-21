@@ -8,30 +8,30 @@ Function CheckReleaseModeSet {
 }
 
 Function GetAzureSiteReleaseModeVariables {
-    FunctionPreflight
-
     CheckReleaseModeSet
 
     $info = @{}
-    switch ($relMode) {
-        "Production" {
+
+    $relMode = Get-ReleaseMode
+
+    switch ($relMode.ToLower().Substring(0, 4)) {
+        "prod" {
             $info.ReleaseMode=$relMode
             $info.BranchName="release"
             $info.BuildConfiguration="Release"
             $info.ShowDrafts="false"
         }
-        "Test" {
+        "test" {
             $info.ReleaseMode=$relMode
             $info.BranchName="master"
             $info.BuildConfiguration="Debug"
             $info.ShowDrafts="true"
         }
         default {
-            throw "unknown release mode, please set to either `"Production`" or `"Test`""
+            throw "unknown release mode, please set to either `"prod`" or `"test`""
         }
     }
-
-    return (New-Object –TypeNamePSObject –Prop $info)
+    return (new-object -typename PSObject -prop $info)
 }
 
 Function Echo-AzureSiteReleaseModeVariables {
