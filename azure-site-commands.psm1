@@ -2,10 +2,15 @@ $ErrorActionPreference = "Stop"
 
 $azureLocation = "North Europe"
 
+Function CheckReleaseModeSet {
+    $relMode = Get-ReleaseMode
+    Check-VarNotNullOrWhiteSpace $relMode "doesn't look like your release mode has been setup, exiting. (Run Set-ReleaseMode to set this.)"
+}
+
 Function GetAzureSiteReleaseModeVariables {
     FunctionPreflight
 
-    $relMode = Get-ReleaseMode
+    CheckReleaseModeSet
 
     $info = @{}
     switch ($relMode) {
@@ -38,8 +43,6 @@ Function Echo-AzureSiteReleaseModeVariables {
 }
 
 Function CheckDependencies {
-    $mode = Get-ReleaseMode
-    Check-VarNotNullOrWhiteSpace $mode "doesn't look like your release mode has been setup, exiting. (Run Set-ReleaseMode to set this.)"
 }
 
 Function FunctionPreflight {
@@ -56,6 +59,7 @@ Function Create-AzureSitePS {
     Check-VarNotNullOrWhiteSpace $githubUsername "doesn't look like your githubUsername variable has been setup, exiting. (Set up a global var with your username in .)"
     Check-VarNotNullOrWhiteSpace $githubPassword "doesn't look like your githubPassword variable has been setup, exiting. (Set up a global var with your password in.)"
     FunctionPreflight $sitename
+    CheckReleaseModeSet
 
     echo "creating site..."
 
@@ -78,6 +82,7 @@ Function Create-AzureSite {
     Check-VarNotNullOrWhiteSpace $githubUsername "doesn't look like your githubUsername variable has been setup, exiting. (Set up a global var with your username in .)"
     Check-VarNotNullOrWhiteSpace $githubPassword "doesn't look like your githubPassword variable has been setup, exiting. (Set up a global var with your password in.)"
     FunctionPreflight $sitename
+    CheckReleaseModeSet
 
     echo "creating site..."
     azure site create --location $azureLocation $sitename
