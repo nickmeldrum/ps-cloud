@@ -15,7 +15,41 @@ $currentPath = $pwd.Path
 $localGitPath = "C:\temp\$randomString"
 $githubRepo = "$siteNamePrefix$randomString"
 
-Function Delete-Site {
+# Local Git Repo Functions
+#
+Function Test-LocalGitRepoShouldNotExist {
+    if (test-path $localGitPath) {
+        throw "local github folder already exists!"
+    }
+}
+
+Function Delete-TestLocalGitRepo {
+    if (test-path $localGitPath) {
+        remove-item $localgitpath -recurse -force
+    }
+}
+
+Function Create-TestLocalGitRepo {
+    write-host "creating local git repo $localGitPath..."
+
+    mkdir $localGitPath
+    cd $localGitPath
+    git init
+    echo "hello world!" > index.html
+    git add .
+    git commit -m "initial commit"
+}
+
+# Azure Site Functions
+#
+Function Test-StagingSiteShouldNotExist {
+    $sitenameIfExists = (azure site list | grep $stagingSitename | gawk '{print $2}')
+    if ($sitenameIfExists -ne $null) {
+        throw "Site already exists!"
+    }
+}
+
+Function Delete-TestStagingSiteIfExists {
     $sitenameIfExists = (azure site list | grep $stagingSitename | gawk '{print $2}')
     if ($sitenameIfExists -ne $null) {
         write-host "deleting azure site $sitenameIfExists..."
@@ -23,56 +57,68 @@ Function Delete-Site {
     }
 }
 
-Function Create-LocalGitRepo {
-    write-host "creating local git repo..."
-    git init
-    echo "hello world!" > index.html
-    git add .
-    git commit -m "initial commit"
+Function Create-TestStagingSite {
+    write-host "setting up staging site $stagingSitename..."
+    write-host "against github repo: $githubRepo."
+    Setup-StagingSite $stagingSitename $githubRepo "test1"
 }
 
-Describe "preconditions" {
-    Context "check preconditions" {
-        It "azure site does not exist without trying anything" {
-            $sitenameIfExists = (azure site list | grep $stagingSitename | gawk '{print $2}')
-            $sitenameIfExists | Should Be $null
-        }
-
-        It "github webhook does not exist without trying anything" {
-            $webhook = (List-GithubWebhooks $githubRepo).config.url | where ({$_.indexof($stagingSitename) -ne -1})
-            $webhook | Should Be $null
-        }
-
-        It "github repo does not exist without trying anything" {
-            $repos = (List-GithubRepos).name | where {$_ -eq $githubrepo}
-        }
+# Github Webhook Functions
+#
+Function Test-StagingGithubWebhookShouldNotExist {
+    $webhook = (List-GithubWebhooks $githubRepo).config.url | where ({$_.indexof($stagingSitename) -ne -1})
+    if ($webhook -ne $null) {
+        throw "webhook already exists!"
     }
- 
+}
+
+# Github Repo Functions
+#
+Function Test-GithubRepoShouldNotExist {
+    $repos = (List-GithubRepos).name | where {$_ -eq $githubrepo}
+    if ($repos.length -ne 0) {
+        throw "github repo already exists!"
+    }
+}
+
+Function Delete-TestGithubRepoIfExists {
+    $repos = (List-GithubRepos).name | where {$_ -eq $githubrepo}
+    if ($repos.length -ne 0) {
+        Delete-GithubRepo $githubrepo
+    }
+}
+
+Function Create-TestGithubRepo {
+    write-host "creating githubrepo $githubrepo..."
+    create-githubrepo $githubrepo
+}
+
 Describe "preconfigured sites setup" {
     BeforeAll {
-        mkdir $localGitPath
-        cd $localGitPath
-        Create-LocalGitRepo
-        write-host "creating githubrepo $githubrepo..."
-        create-githurepo $githubrepo
-     }
+        Test-LocalGitRepoShouldNotExist
+        Test-GithubRepoShouldNotExist
+
+        Create-TestLocalGitRepo
+        Create-TestGithubRepo
+    }
 
     AfterAll {
         cd $currentPath
-        Delete-Site
-        remove-item $localGitPath -recurse -force
-        delete-githubrepo $githubrepo
+        Delete-TestLocalGitRepo
+        delete-testgithubrepoifexists
     }
-
    
     Context "create staging site" {
         BeforeAll {
-            write-host "setting up staging site $stagingSitename..."
-            write-host "against github repo: $githubRepo."
-            Setup-StagingSite $stagingSitename $githubRepo "test1"
+            Test-StagingSiteShouldNotExist
+            Test-StagingGithubWebhookShouldNotExist
 
+            Create-TestStagingSite
             $siteDetails = Get-AzureWebsite $stagingSitename
-            write-host $siteDetails
+         }
+
+        AfterAll {
+            Delete-TestStagingSiteIfExists
         }
 
         It "is enabled" {
@@ -85,4 +131,4 @@ Describe "preconfigured sites setup" {
         }
     }
 }
-}
+
