@@ -7,7 +7,7 @@ Function CheckReleaseModeSet {
     Check-VarNotNullOrWhiteSpace $relMode "doesn't look like your release mode has been setup, exiting. (Run Set-ReleaseMode to set this.)"
 }
 
-Function GetAzureSiteReleaseModeVariables {
+Function Get-AzureSiteReleaseModeVariables {
     CheckReleaseModeSet
 
     $info = @{}
@@ -35,7 +35,7 @@ Function GetAzureSiteReleaseModeVariables {
 }
 
 Function Echo-AzureSiteReleaseModeVariables {
-    $vars = GetAzureSiteReleaseModeVariables
+    $vars = Get-AzureSiteReleaseModeVariables
     echo "Release mode = $($vars.ReleaseMode)"
     echo "branch to deploy = $($vars.BranchName)"
     echo "build config = $($vars.BuildConfiguration)"
@@ -70,44 +70,43 @@ Function Create-AzureSitePS {
 }
 
 Function Create-AzureSite {
-    param ([string]$sitename, [string]$githubRepo, [string]$siteAdminPassword)
-    Check-VarNotNullOrWhiteSpace $siteAdminPassword "Please pass in a valid site admin password as a string"
+    param ([string]$sitename)
+    Check-VarNotNullOrWhiteSpace $azureLocation "azureLocation variable should have been set up the top of the site powershell script"
+    FunctionPreflight $sitename
+
+    echo "creating site..."
+    azure site create --location $azureLocation $sitename
+}
+
+Function Setup-AzureSiteGithubDeployment {
+    param ([string]$sitename, [string]$githubRepo)
     Check-VarNotNullOrWhiteSpace $githubRepo "Please pass in a valid githubRepo as a string"
     Check-VarNotNullOrWhiteSpace $githubUsername "doesn't look like your githubUsername variable has been setup, exiting. (Set up a global var with your username in .)"
     Check-VarNotNullOrWhiteSpace $githubPassword "doesn't look like your githubPassword variable has been setup, exiting. (Set up a global var with your password in.)"
     FunctionPreflight $sitename
-    CheckReleaseModeSet
 
-    echo "creating site..."
-    azure site create --location $azureLocation $sitename
-    
-    Set-AzureSiteConfig $sitename $siteAdminPassword
+    Set-AzureSiteDeploymentMode $sitename
 
     echo "setting up deployment..."
     azure site deployment github --githubusername $githubUsername --githubpassword $githubPassword --githubrepository "$githubUsername/$githubRepo" $sitename 
-
-    echo "if you got here without errors then bingo bango - you have a new azure website with the name $sitename and a push deployment webhook from github repo $githubRepo setup"
 }
 
-Function Set-AzureSiteConfig {
-    param ([string]$sitename, [string]$siteAdminPassword)
-    Check-VarNotNullOrWhiteSpace $siteAdminPassword "Please pass in a valid site admin password as a string"
+Function Stop-AzureSitePhp {
+    param ([string]$sitename)
     FunctionPreflight $sitename
 
-    echo "setting up site config..."
     azure site set --php-version off $sitename
-
-    $vars = GetAzureSiteReleaseModeVariables
-
-    # deployment settings
-    azure site appsetting add "deployment_branch=$($vars.BranchName);SCM_BUILD_ARGS=-p:Configuration=$($vars.BuildConfiguration)" $sitename
-    # azure storage settings
-    azure site appsetting add "azureStorageAccountName=nickmeldrum;azureStorageBlobEndPoint=https://nickmeldrum.blob.core.windows.net/;azureStorageKey=kVjV1bHjuK3jcShagvfwNV6lndMjb4h12pLNJgkcbQ2ZYQ/TFpXTWIdfORZLxOS0QdymmNfYVtWPZCDHyQZgSw==" $sitename
-    # app settings
-    azure site appsetting add "ShowDrafts=$($vars.ShowDrafts);username-Nick-admin=$siteAdminPassword" $sitename
 }
 
-Function Clear-AzureSiteConfig {
+Function Set-AzureSiteDeploymentMode {
+    param ([string]$sitename)
+    FunctionPreflight $sitename
+
+    $vars = Get-AzureSiteReleaseModeVariables
+    azure site appsetting add "deployment_branch=$($vars.BranchName);SCM_BUILD_ARGS=-p:Configuration=$($vars.BuildConfiguration)" $sitename
+}
+
+Function Clear-AzureSiteDeploymentSettings {
     param ([string]$sitename)
     FunctionPreflight $sitename
 
@@ -115,13 +114,6 @@ Function Clear-AzureSiteConfig {
 
     azure site appsetting delete -q deployment_branch $sitename
     azure site appsetting delete -q SCM_BUILD_ARGS $sitename
-
-    azure site appsetting delete -q azureStorageAccountName $sitename
-    azure site appsetting delete -q azureStorageBlobEndPoint $sitename
-    azure site appsetting delete -q azureStorageKey $sitename
-
-    azure site appsetting delete -q ShowDrafts $sitename
-    azure site appsetting delete -q username-Nick-Admin $sitename
 }
 
 Function Delete-AzureSite {
