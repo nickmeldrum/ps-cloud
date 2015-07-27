@@ -6,11 +6,27 @@
 import-module .\ps-cloud.psd1
 
 Describe "nickmeldrum-blog setup" {
-    Context "staging site setup" {
-        $result = 1
 
-        It "gets setup" {
-            $result | Should Be 2
+    Context "staging site setup" {
+        BeforeEach {
+            $sitenameIfExists = (azure site list | grep "nickmeldrum-staging" | gawk '{print $2}')
+            if ($sitenameIfExists -ne $null) {
+                Delete-AzureSite $sitenameIfExists
+            }
+        }
+
+        It "azure site does not exist without trying anything (before each is doing it's job)" {
+            $sitenameIfExists = (azure site list | grep "nickmeldrum-staging" | gawk '{print $2}')
+            $sitenameIfExists | Should Be $null
+        }
+
+        It "github webhook does not exist without trying anything (before each is doing it's job)" {
+            $webhook = (List-GithubWebhooks "nickmeldrum.com.markdownblog").config.url | where ({$_.indexof("nickmeldrum-staging") -ne -1})
+            $webhook | Should Be $null
+        }
+
+        It "staging setup creates azure site and autodeploys onto it" {
+            $false | Should Be $true
         }
     }
 }
