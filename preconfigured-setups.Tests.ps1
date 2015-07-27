@@ -3,30 +3,43 @@
 # see here for installation: http://www.powershellmagazine.com/2014/03/12/get-started-with-pester-powershell-unit-testing-framework/
 # or just run the .\install-pester.ps1 script here :)
 
-import-module .\ps-cloud.psd1
+import-module .\ps-cloud.psd1 -force
+
+$stagingSitename = "nmpester-test-staging"
+$githubRepo = "nickmeldrum.com.markdownblog"
+$siteAdminPassword = "test1"
 
 Describe "nickmeldrum-blog setup" {
+    $sitenameIfExists = (azure site list | grep $stagingSitename | gawk '{print $2}')
+    if ($sitenameIfExists -ne $null) {
+        write-host "deleting azure site $sitenameIfExists..."
+        Delete-AzureSite $sitenameIfExists
+    }
 
-    Context "staging site setup" {
-        BeforeEach {
-            $sitenameIfExists = (azure site list | grep "nickmeldrum-staging" | gawk '{print $2}')
-            if ($sitenameIfExists -ne $null) {
-                Delete-AzureSite $sitenameIfExists
-            }
+    It "azure site does not exist without trying anything (initial clean up worked)" {
+        $sitenameIfExists = (azure site list | grep $stagingSitename | gawk '{print $2}')
+        $sitenameIfExists | Should Be $null
+    }
+
+    It "github webhook does not exist without trying anything (initial clean up worked)" {
+        $webhook = (List-GithubWebhooks $githubRepo).config.url | where ({$_.indexof($stagingSitename) -ne -1})
+        $webhook | Should Be $null
+    }
+    
+    Context "create staging site" {
+        write-host "setting up staging site $stagingSitename..."
+        write-host "against github repo: $githubRepo."
+        Setup-StagingSite $stagingSitename $githubRepo $siteAdminPassword
+        $siteDetails = Get-AzureWebsite $stagingSitename
+        write-host $siteDetails
+
+        It "is enabled" {
+            $siteDetails.Enabled | Should Be $true
         }
 
-        It "azure site does not exist without trying anything (before each is doing it's job)" {
-            $sitenameIfExists = (azure site list | grep "nickmeldrum-staging" | gawk '{print $2}')
-            $sitenameIfExists | Should Be $null
-        }
-
-        It "github webhook does not exist without trying anything (before each is doing it's job)" {
-            $webhook = (List-GithubWebhooks "nickmeldrum.com.markdownblog").config.url | where ({$_.indexof("nickmeldrum-staging") -ne -1})
-            $webhook | Should Be $null
-        }
-
-        It "staging setup creates azure site and autodeploys onto it" {
-            $false | Should Be $true
+        It "php has been turned off" {
+            $phpVersionEmpty = [string]::IsNullOrWhitespace($siteDetails.phpVersion)
+            $phpVersionEmpty | Should Be $true
         }
     }
 }

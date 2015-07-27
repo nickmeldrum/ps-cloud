@@ -11,11 +11,10 @@ Function Setup-NickMeldrumBlog {
 }
 
 Function Setup-StagingSite {
-    param ([string]$sitename)
+    param ([string]$sitename, [string]$githubRepo, [string]$siteAdminPassword)
 
     Set-ReleaseMode "test"
     Create-AzureSite $sitename
-
     Stop-AzureSitePhp $sitename
 
     $vars = Get-AzureSiteReleaseModeVariables
@@ -25,6 +24,6 @@ Function Setup-StagingSite {
     # app settings
     azure site appsetting add "ShowDrafts=$($vars.ShowDrafts);username-Nick-admin=$siteAdminPassword" $sitename
 
-    Setup-AzureSiteGithubDeployment
+    Setup-AzureSiteGithubDeployment $sitename $githubRepo
 }
 
