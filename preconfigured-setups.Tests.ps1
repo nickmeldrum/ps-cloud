@@ -31,6 +31,23 @@ Function Create-LocalGitRepo {
     git commit -m "initial commit"
 }
 
+Describe "preconditions" {
+    Context "check preconditions" {
+        It "azure site does not exist without trying anything" {
+            $sitenameIfExists = (azure site list | grep $stagingSitename | gawk '{print $2}')
+            $sitenameIfExists | Should Be $null
+        }
+
+        It "github webhook does not exist without trying anything" {
+            $webhook = (List-GithubWebhooks $githubRepo).config.url | where ({$_.indexof($stagingSitename) -ne -1})
+            $webhook | Should Be $null
+        }
+
+        It "github repo does not exist without trying anything" {
+            $repos = (List-GithubRepos).name | where {$_ -eq $githubrepo}
+        }
+    }
+ 
 Describe "preconfigured sites setup" {
     BeforeAll {
         mkdir $localGitPath
@@ -47,18 +64,7 @@ Describe "preconfigured sites setup" {
         delete-githubrepo $githubrepo
     }
 
-    Context "check preconditions" {
-        It "azure site does not exist without trying anything" {
-            $sitenameIfExists = (azure site list | grep $stagingSitename | gawk '{print $2}')
-            $sitenameIfExists | Should Be $null
-        }
-
-        It "github webhook does not exist without trying anything" {
-            $webhook = (List-GithubWebhooks $githubRepo).config.url | where ({$_.indexof($stagingSitename) -ne -1})
-            $webhook | Should Be $null
-        }
-    }
-    
+   
     Context "create staging site" {
         BeforeAll {
             write-host "setting up staging site $stagingSitename..."
@@ -79,4 +85,4 @@ Describe "preconfigured sites setup" {
         }
     }
 }
-
+}
