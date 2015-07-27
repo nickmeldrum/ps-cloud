@@ -106,6 +106,12 @@ Function Create-GithubWebhook {
     Invoke-RestMethod -Uri "https://api.github.com/repos/$githubUsername/$githubRepo/hooks" -Method Post -ContentType "application/json" -Headers $headers -Body (ConvertTo-Json $body)
 }
 
+Function Delete-GithubRepo {
+    param ([string]$githubRepo)
+    CheckVarNotNullOrWhiteSpace $githubRepo "Please pass in a valid githubRepo as a string"
+    Invoke-RestMethod -Uri "https://api.github.com/repos/$githubUsername/$githubRepo" -Method Delete -ContentType "application/json" -Headers $headers
+}
+
 Function Delete-GithubWebhook {
     param ([string]$githubRepo, [string]$triggerUrlSubstring)
     CheckVarNotNullOrWhiteSpace $triggerUrlSubstring "Please pass in a valid triggerUrlSubstring as a string"

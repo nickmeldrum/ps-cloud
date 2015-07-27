@@ -5,33 +5,69 @@
 
 import-module .\ps-cloud.psd1 -force
 
-$stagingSitename = "nmpester-test-staging"
-$githubRepo = "nickmeldrum.com.markdownblog"
-$siteAdminPassword = "test1"
+$siteNamePrefix = "pstest-"
+$stagingSuffix = "-staging"
+$randomString = [Guid]::NewGuid().ToString().replace("-", "").toupperinvariant().substring(5, 5)
 
-Describe "nickmeldrum-blog setup" {
+$stagingSiteName = "$siteNamePrefix$randomString$stagingSuffix"
+
+$currentPath = $pwd.Path
+$localGitPath = "C:\temp\$randomString"
+$githubRepo = "$siteNamePrefix$randomString"
+
+Function Delete-Site {
     $sitenameIfExists = (azure site list | grep $stagingSitename | gawk '{print $2}')
     if ($sitenameIfExists -ne $null) {
         write-host "deleting azure site $sitenameIfExists..."
-        Delete-AzureSite $sitenameIfExists
+        Delete-AzureSite $sitenameIfExists $githubRepo
+    }
+}
+
+Function Create-LocalGitRepo {
+    write-host "creating local git repo..."
+    git init
+    echo "hello world!" > index.html
+    git add .
+    git commit -m "initial commit"
+}
+
+Describe "preconfigured sites setup" {
+    BeforeAll {
+        mkdir $localGitPath
+        cd $localGitPath
+        Create-LocalGitRepo
+        write-host "creating githubrepo $githubrepo..."
+        create-githurepo $githubrepo
+     }
+
+    AfterAll {
+        cd $currentPath
+        Delete-Site
+        remove-item $localGitPath -recurse -force
+        delete-githubrepo $githubrepo
     }
 
-    It "azure site does not exist without trying anything (initial clean up worked)" {
-        $sitenameIfExists = (azure site list | grep $stagingSitename | gawk '{print $2}')
-        $sitenameIfExists | Should Be $null
-    }
+    Context "check preconditions" {
+        It "azure site does not exist without trying anything" {
+            $sitenameIfExists = (azure site list | grep $stagingSitename | gawk '{print $2}')
+            $sitenameIfExists | Should Be $null
+        }
 
-    It "github webhook does not exist without trying anything (initial clean up worked)" {
-        $webhook = (List-GithubWebhooks $githubRepo).config.url | where ({$_.indexof($stagingSitename) -ne -1})
-        $webhook | Should Be $null
+        It "github webhook does not exist without trying anything" {
+            $webhook = (List-GithubWebhooks $githubRepo).config.url | where ({$_.indexof($stagingSitename) -ne -1})
+            $webhook | Should Be $null
+        }
     }
     
     Context "create staging site" {
-        write-host "setting up staging site $stagingSitename..."
-        write-host "against github repo: $githubRepo."
-        Setup-StagingSite $stagingSitename $githubRepo $siteAdminPassword
-        $siteDetails = Get-AzureWebsite $stagingSitename
-        write-host $siteDetails
+        BeforeAll {
+            write-host "setting up staging site $stagingSitename..."
+            write-host "against github repo: $githubRepo."
+            Setup-StagingSite $stagingSitename $githubRepo "test1"
+
+            $siteDetails = Get-AzureWebsite $stagingSitename
+            write-host $siteDetails
+        }
 
         It "is enabled" {
             $siteDetails.Enabled | Should Be $true
