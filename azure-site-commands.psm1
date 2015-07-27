@@ -62,13 +62,6 @@ Function Create-AzureSitePS {
     CheckReleaseModeSet
 
     echo "creating site..."
-
-#echo "falling back on asking for creds as passing them in (below in func) isn't working atm..."
-#    new-azurewebsite -name $sitename -location $azureLocation -github -githubrepository "$githubusername/$githubrepo"
-
-
-#    return
-#    echo "TODO: The following doesn't seem to work - auth failure against github i think..."
     $secpasswd = ConvertTo-SecureString $githubPassword -AsPlainText -Force
     $githubCreds = New-Object -Typename System.Management.Automation.PSCredential -Argumentlist $githubUsername, $secpasswd
     new-azurewebsite -name $sitename -location $azureLocation -github -githubcredentials $githubCreds -githubrepository "$githubusername/$githubrepo"
