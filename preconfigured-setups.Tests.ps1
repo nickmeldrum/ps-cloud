@@ -55,7 +55,7 @@ Function Delete-TestStagingSiteIfExists {
     $sitenameIfExists = (azure site list | grep $stagingSitename | gawk '{print $2}')
     if ($sitenameIfExists -ne $null) {
         write-host "deleting azure site $sitenameIfExists..."
-        Delete-AzureSite $sitenameIfExists $githubRepo
+        azure site delete -q $stagingSitename
     }
 }
 
@@ -97,6 +97,21 @@ Function Delete-TestGithubRepoIfExists {
 Function Create-TestGithubRepo {
     write-host "creating githubrepo $githubrepo..."
     create-githubrepo $githubrepo
+}
+
+Function Test-DeploymentCompleted {
+    param ($sitename, $deployMsg)
+
+    $timesToTestIfDeploymentOccurred = 0
+    while ($timesToTestIfDeploymentOccurred < 5) {
+        $currentDeployment = (Get-AzureWebsiteDeployment -name $sitename | where {$_.Current -eq $true})
+        if ($currentDeployment.Status -eq "Success" -and $currentDeployment.Complete -eq "True"
+                -and $currentDeployment.Message.trim() -eq $deployMsg) {
+            return
+        }
+        start-sleep -s 5
+    }
+    throw "deployment not completed within timeout"
 }
 
 Describe "preconfigured sites setup" {
@@ -146,20 +161,21 @@ Describe "preconfigured sites setup" {
         }
 
         It "staging site is online with deployed content" {
-            write-host (Get-AzureSiteCurrentDeployment $stagingSiteName)
-            start-sleep -s 10
-            write-host (Get-AzureSiteCurrentDeployment $stagingSiteName)
-            (curl -method "GET" -uri "http://$stagingSitename.azurewebsites.net/").content.trim() -eq "hello world" | Should Be $true
+            start-sleep -s 5
+            Test-DeploymentCompleted $stagingSitename "initial commit"
+            (curl -method "GET" -uri "http://$stagingSitename.azurewebsites.net/").content.trim() -eq "hello world!" | Should Be $true
         }
 
         It "site picks up the appsettings that azure sets" {
+            $deployMsg = "adding aspx page to check an appsetting"
             '<%@ Page Language="C#" %>' | out-file appsettings.aspx -encoding ascii
             '<%Response.Write(System.Configuration.ConfigurationSettings.AppSettings["testName"]); %>' | out-file appsettings.aspx -encoding ascii -append -noclobber
             git add .
-            git commit -m "adding aspx page to check an appsetting"
+            git commit -m $deployMsg
             git push
-            write-host (Get-AzureSiteCurrentDeployment $stagingSiteName)
-            start-sleep -s 10
+
+            Test-DeploymentCompleted $stagingSitename $deployMsg
+
             write-host (Get-AzureSiteCurrentDeployment $stagingSiteName)
             (curl -method "GET" -uri "http://$stagingSitename.azurewebsites.net/appsettings.aspx").content.trim() -eq "john" | Should Be $true
         }

@@ -1,24 +1,17 @@
 $ErrorActionPreference = "Stop"
 
-Function Delete-AzureSiteAndWebhook {
-    param ([string]$sitename, [string]$githubRepo)
-    Check-VarNotNullOrWhiteSpace $sitename "please pass in a sitename"
-    Check-VarNotNullOrWhiteSpace $githubRepo "please pass in a github repo"
-
-    write-host "deleting site..."
-    azure site delete -q $sitename
-
-    if (-Not ([string]::IsNullOrWhiteSpace($githubRepo))) {
-        write-host "deleting webhook..."
-        Delete-GithubWebhook $githubRepo "$sitename.scm.azurewebsites.net"
-    }
-}
-
 Function Get-AzureSiteCurrentDeployment {
     param ([string]$sitename)
     Check-VarNotNullOrWhiteSpace $sitename "please pass in a sitename"
 
     return azure site deployment list $sitename | grep -i active
+}
+
+Function Get-AzureSiteCurrentDeploymentPS {
+    param ([string]$sitename)
+    FunctionPreflight $sitename
+
+    return Get-AzureWebsiteDeployment -name $sitename | where {$_.Current -eq $true}
 }
 
 Function Redeploy-AzureSiteCurrentDeployment {
