@@ -101,6 +101,8 @@ Function Create-TestGithubRepo {
 
 Describe "preconfigured sites setup" {
     BeforeAll {
+        Check-VarNotNullOrWhiteSpace $githubPassword "github password not set?"
+
         Test-LocalGitRepoShouldNotExist
         Test-GithubRepoShouldNotExist
 
@@ -121,19 +123,30 @@ Describe "preconfigured sites setup" {
 
             Create-TestStagingSite
             $siteDetails = Get-AzureWebsite $stagingSitename
+
+            write-host "github repo name: $githubrepo"
+            write-host "staging site name: $stagingSitename"
          }
 
         AfterAll {
             Delete-TestStagingSiteIfExists
         }
 
-        It "is enabled" {
+        It "staging site has been created" {
+            $siteDetails -eq $null | Should Be $false
+        }
+
+        It "staging site is enabled" {
             $siteDetails.Enabled | Should Be $true
         }
 
-        It "php has been turned off" {
+        It "staging site php has been turned off" {
             $phpVersionEmpty = [string]::IsNullOrWhitespace($siteDetails.phpVersion)
             $phpVersionEmpty | Should Be $true
+        }
+
+        It "staging site is online with deployed content" {
+            (curl -method "GET" -uri "http://$stagingSitename.azurewebsites.net/").content.trim() -eq "hello world" | Should Be $true
         }
     }
 }
