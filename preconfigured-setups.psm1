@@ -10,21 +10,20 @@ Function Setup-NickMeldrumBlog {
     $githubRepo = "nickmeldrum.com.markdownblog"
     $siteName = "nickmeldrum"
     $stagingSiteName = "nickmeldrum-staging"
+    $prodHostNames = @("nickmeldrum.com", "www.nickmeldrum.com", "nickmeldrum.net", "www.nickmeldrum.net")
 
     $azureStorageAppSettings = "azureStorageAccountName=nickmeldrum;azureStorageBlobEndPoint=https://nickmeldrum.blob.core.windows.net/;azureStorageKey=kVjV1bHjuK3jcShagvfwNV6lndMjb4h12pLNJgkcbQ2ZYQ/TFpXTWIdfORZLxOS0QdymmNfYVtWPZCDHyQZgSw=="
     $stagingblogAppSettings = "ShowDrafts=True;username-Nick-admin=$siteAdminPassword"
     $prodblogAppSettings = "ShowDrafts=False;username-Nick-admin=$siteAdminPassword"
 
     Setup-SiteWithGithubDeployment "test" $githubRepo $stagingSiteName "$azureStorageAppSettings;$stagingblogAppSettings"
-#Setup-SiteWithGithubDeployment "prod" $githubRepo $siteName "$azureStorageAppSettings;$prodblogAppSettings"
-}
 
-Function Setup-SiteWithHostname {
-    param ([string]$sitename, [string]$hostname)
-    Check-VarNotNullOrWhiteSpace $sitename "Please pass in a valid sitename as a string"
-    Check-VarNotNullOrWhiteSpace $hostname "Please pass in a valid hostname as a string"
+    return
+    Setup-SiteWithGithubDeployment "prod" $githubRepo $siteName "$azureStorageAppSettings;$prodblogAppSettings"
 
-    azure site domain add $hostname $sitename
+    foreach ($hostname in $prodHostNames) {
+        azure site domain add $hostname $sitename
+    }
 }
 
 Function Setup-SiteWithGithubDeployment {

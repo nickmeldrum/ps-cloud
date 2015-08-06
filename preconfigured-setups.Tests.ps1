@@ -183,6 +183,8 @@ Describe "preconfigured sites setup" {
             write-host (Get-AzureSiteCurrentDeployment $stagingSiteName)
             (curl -method "GET" -uri "http://$stagingSitename.azurewebsites.net/appsettings.aspx").content.trim() -eq "john" | Should Be $true
         }
+    }
+}
 
 # TODO: STILL TO TEST:
 # that we have both a staging and a prod website and prod website deploys from release branch
@@ -190,6 +192,4 @@ Describe "preconfigured sites setup" {
 # that azure storage has been setup correctly
 # that hostname on prod website has been setup correctly
 # that staging site is on free plan and prod site on shared plan (cos of hostname)
-    }
-}
 
