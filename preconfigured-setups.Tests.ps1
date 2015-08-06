@@ -35,8 +35,8 @@ Function Create-TestLocalGitRepo {
     mkdir $localGitPath
     cd $localGitPath
     git init
-    echo "hello world!" > index.html
-    echo "*.publishsettings" > .gitignore
+    "hello world!" | out-file index.html -encoding ascii
+    "*.publishsettings" | out-file .gitignore -encoding ascii
     copy "$currentPath\*.publishsettings" .
     git add .
     git commit -m "initial commit"
