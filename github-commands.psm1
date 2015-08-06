@@ -11,18 +11,10 @@ $headers = @{
 
 $ErrorActionPreference = "Stop"
 
-Function CheckVarNotNullOrWhiteSpace {
-    param ([string]$var, [string]$msg)
-
-    if ([string]::IsNullOrWhiteSpace($var)) {
-        throw $msg
-    }
-}
-
 Function CheckDependencies {
-    CheckVarNotNullOrWhiteSpace $githubUsername "doesn't look like your githubUsername variable has been setup, exiting. (Set up a global var with your username in .)"
-    CheckVarNotNullOrWhiteSpace $githubToken "doesn't look like your githubToken variable has been setup, exiting. (Set up a global var with your token in .)"
-    CheckVarNotNullOrWhiteSpace $githubPassword "doesn't look like your githubPassword variable has been setup, exiting. (Set up a global var with your password in.)"
+    Check-VarNotNullOrWhiteSpace $githubUsername "doesn't look like your githubUsername variable has been setup, exiting. (Set up a global var with your username in .)"
+    Check-VarNotNullOrWhiteSpace $githubToken "doesn't look like your githubToken variable has been setup, exiting. (Set up a global var with your token in .)"
+    Check-VarNotNullOrWhiteSpace $githubPassword "doesn't look like your githubPassword variable has been setup, exiting. (Set up a global var with your password in.)"
 
     echo "dependency check (githubUsername, githubToken, githubPassword) passed!"
 }
@@ -86,8 +78,8 @@ Function Create-BitbucketPublicRepo {
 
 Function Create-GithubWebhook {
     param ([string]$githubRepo, [string]$triggerUrl)
-    CheckVarNotNullOrWhiteSpace $githubRepo "Please pass in a valid githubRepo as a string"
-    CheckVarNotNullOrWhiteSpace $triggerUrl "Please pass in a valid triggerUrl as a string"
+    Check-VarNotNullOrWhiteSpace $githubRepo "Please pass in a valid githubRepo as a string"
+    Check-VarNotNullOrWhiteSpace $triggerUrl "Please pass in a valid triggerUrl as a string"
     FunctionPreflight
 
     echo "setting up github webhook..."
@@ -112,14 +104,14 @@ Function List-GithubRepos {
 
 Function Delete-GithubRepo {
     param ([string]$githubRepo)
-    CheckVarNotNullOrWhiteSpace $githubRepo "Please pass in a valid githubRepo as a string"
+    Check-VarNotNullOrWhiteSpace $githubRepo "Please pass in a valid githubRepo as a string"
     Invoke-RestMethod -Uri "https://api.github.com/repos/$githubUsername/$githubRepo" -Method Delete -ContentType "application/json" -Headers $headers
 }
 
 Function Delete-GithubWebhook {
     param ([string]$githubRepo, [string]$triggerUrlSubstring)
-    CheckVarNotNullOrWhiteSpace $triggerUrlSubstring "Please pass in a valid triggerUrlSubstring as a string"
-    CheckVarNotNullOrWhiteSpace $githubRepo "Please pass in a valid githubRepo as a string"
+    Check-VarNotNullOrWhiteSpace $triggerUrlSubstring "Please pass in a valid triggerUrlSubstring as a string"
+    Check-VarNotNullOrWhiteSpace $githubRepo "Please pass in a valid githubRepo as a string"
 
     echo "deleting webhook if it exists..."
     $webhook = ((Invoke-RestMethod -Uri "https://api.github.com/repos/$githubUsername/$githubRepo/hooks" -Method Get -Headers $headers) | where { $_.config.url.indexof($triggerUrlSubstring) -gt -1})
@@ -132,7 +124,7 @@ Function Delete-GithubWebhook {
 
 Function List-GithubWebhooks {
     param ([string]$githubRepo)
-    CheckVarNotNullOrWhiteSpace $githubRepo "Please pass in a valid githubRepo as a string"
+    Check-VarNotNullOrWhiteSpace $githubRepo "Please pass in a valid githubRepo as a string"
 
     return Invoke-RestMethod -Uri "https://api.github.com/repos/$githubUsername/$githubRepo/hooks" -Method Get -Headers $headers
 }
