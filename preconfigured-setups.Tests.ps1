@@ -62,7 +62,7 @@ Function Delete-TestStagingSiteIfExists {
 Function Create-TestStagingSite {
     write-host "setting up staging site $stagingSitename..."
     write-host "against github repo: $githubRepo."
-    Setup-StagingSite $stagingSitename $githubRepo "test1"
+    Setup-SiteWithGithubDeployment "test" $githubRepo $stagingSitename "testName=John"
 }
 
 # Github Webhook Functions
@@ -146,8 +146,31 @@ Describe "preconfigured sites setup" {
         }
 
         It "staging site is online with deployed content" {
+            write-host (Get-AzureSiteCurrentDeployment $stagingSiteName)
+            start-sleep -s 10
+            write-host (Get-AzureSiteCurrentDeployment $stagingSiteName)
             (curl -method "GET" -uri "http://$stagingSitename.azurewebsites.net/").content.trim() -eq "hello world" | Should Be $true
         }
+
+        It "site picks up the appsettings that azure sets" {
+            '<%@ Page Language="C#" %>' | out-file appsettings.aspx -encoding ascii
+            '<%Response.Write(System.Configuration.ConfigurationSettings.AppSettings["testName"]); %>' | out-file appsettings.aspx -encoding ascii -append -noclobber
+            git add .
+            git commit -m "adding aspx page to check an appsetting"
+            git push
+            write-host (Get-AzureSiteCurrentDeployment $stagingSiteName)
+            start-sleep -s 10
+            write-host (Get-AzureSiteCurrentDeployment $stagingSiteName)
+            (curl -method "GET" -uri "http://$stagingSitename.azurewebsites.net/appsettings.aspx").content.trim() -eq "john" | Should Be $true
+        }
+
+# TODO: STILL TO TEST:
+# committing to master and then pushing sets off a new deployment
+# that we have both a staging and a prod website and prod website deploys from release branch
+# that correct build configuration has been picked up
+# that azure storage has been setup correctly
+# that hostname on prod website has been setup correctly
+# that staging site is on free plan and prod site on shared plan (cos of hostname)
     }
 }
 

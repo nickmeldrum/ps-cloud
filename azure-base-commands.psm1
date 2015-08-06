@@ -31,15 +31,5 @@ Function Login-AzureApi {
     }
 }
 
-Function Set-ReleaseMode {
-    param ([string]$relMode)
-
-    $script:releaseMode = $relMode
-}
-
-Function Get-ReleaseMode {
-    return $releaseMode
-}
-
 export-modulemember *-*
 

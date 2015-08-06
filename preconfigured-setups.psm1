@@ -1,29 +1,97 @@
 $ErrorActionPreference = "Stop"
 
+$azureLocation = "North Europe"
+
 Function Setup-NickMeldrumBlog {
-    param ([string]$sitename)
+    Check-VarNotNullOrWhiteSpace $siteAdminPassword "please setup a global variable siteAdminPassword outside this script as it must be kept secret"
 
-    $stagingSiteName = "nickmeldrum-staging"
+    Login-AzureApi
+
     $githubRepo = "nickmeldrum.com.markdownblog"
-    $siteAdminPassword = "test1"
+    $siteName = "nickmeldrum"
+    $stagingSiteName = "nickmeldrum-staging"
 
-    Setup-StagingSite $stagingSiteName $githubRepo $siteAdminPassword
+    $azureStorageAppSettings = "azureStorageAccountName=nickmeldrum;azureStorageBlobEndPoint=https://nickmeldrum.blob.core.windows.net/;azureStorageKey=kVjV1bHjuK3jcShagvfwNV6lndMjb4h12pLNJgkcbQ2ZYQ/TFpXTWIdfORZLxOS0QdymmNfYVtWPZCDHyQZgSw=="
+    $stagingblogAppSettings = "ShowDrafts=True;username-Nick-admin=$siteAdminPassword"
+    $prodblogAppSettings = "ShowDrafts=False;username-Nick-admin=$siteAdminPassword"
+
+    Setup-SiteWithGithubDeployment "test" $githubRepo $stagingSiteName "$azureStorageAppSettings;$stagingblogAppSettings"
+#Setup-SiteWithGithubDeployment "prod" $githubRepo $siteName "$azureStorageAppSettings;$prodblogAppSettings"
 }
 
-Function Setup-StagingSite {
-    param ([string]$sitename, [string]$githubRepo, [string]$siteAdminPassword)
+Function Setup-SiteWithGithubDeployment {
+    param ([string]$releaseMode, [string]$githubRepo, [string]$sitename, [string]$appSettings)
 
-    Set-ReleaseMode "test"
-    Create-AzureSite $sitename
-    Stop-AzureSitePhp $sitename
+    Check-VarNotNullOrWhiteSpace $azureLocation "azureLocation variable should have been set up the top of the site powershell script"
+    Check-VarNotNullOrWhiteSpace $githubUsername "doesn't look like your githubUsername variable has been setup, exiting. (Set up a global var with your username in .)"
+    Check-VarNotNullOrWhiteSpace $githubPassword "doesn't look like your githubPassword variable has been setup, exiting. (Set up a global var with your password in.)"
 
+    Check-VarNotNullOrWhiteSpace $releaseMode "Please pass in a valid releaseMode as a string"
+    Check-VarNotNullOrWhiteSpace $githubRepo "Please pass in a valid githubRepo as a string"
+    Check-VarNotNullOrWhiteSpace $sitename "Please pass in a valid sitename as a string"
+ 
+    Set-ReleaseMode $ReleaseMode
     $vars = Get-AzureSiteReleaseModeVariables
 
-    # azure storage settings
-    azure site appsetting add "azureStorageAccountName=nickmeldrum;azureStorageBlobEndPoint=https://nickmeldrum.blob.core.windows.net/;azureStorageKey=kVjV1bHjuK3jcShagvfwNV6lndMjb4h12pLNJgkcbQ2ZYQ/TFpXTWIdfORZLxOS0QdymmNfYVtWPZCDHyQZgSw==" $sitename
-    # app settings
-    azure site appsetting add "ShowDrafts=$($vars.ShowDrafts);username-Nick-admin=$siteAdminPassword" $sitename
+    azure site create --location $azureLocation $sitename
 
-    Setup-AzureSiteGithubDeployment $sitename $githubRepo
+    azure site set --php-version off $sitename
+
+    if (-not [string]::IsNullOrWhiteSpace($sitename)) {
+        azure site appsetting add $appSettings $sitename
+    }
+
+# Setup appsettings that kudu will read to know what branch to build and which build config msbuild should use
+    azure site appsetting add "deployment_branch=$($vars.BranchName);SCM_BUILD_ARGS=-p:Configuration=$($vars.BuildConfiguration)" $sitename
+# Setup azure site (kudu) to create a github webhook to trigger a build and deploy on a push to github
+    azure site deployment github --githubusername $githubUsername --githubpassword $githubPassword --githubrepository "$githubUsername/$githubRepo" $sitename 
+}
+
+Function Set-ReleaseMode {
+    param ([string]$relMode)
+
+    $script:releaseMode = $relMode
+}
+
+Function Get-ReleaseMode {
+    return $releaseMode
+}
+
+Function CheckReleaseModeSet {
+    $relMode = Get-ReleaseMode
+    Check-VarNotNullOrWhiteSpace $relMode "doesn't look like your release mode has been setup, exiting. (Run Set-ReleaseMode to set this.)"
+}
+
+Function Get-AzureSiteReleaseModeVariables {
+    CheckReleaseModeSet
+
+    $info = @{}
+
+    $relMode = Get-ReleaseMode
+
+    switch ($relMode.ToLower().Substring(0, 4)) {
+        "prod" {
+            $info.ReleaseMode=$relMode
+            $info.BranchName="release"
+            $info.BuildConfiguration="Release"
+        }
+        "test" {
+            $info.ReleaseMode=$relMode
+            $info.BranchName="master"
+            $info.BuildConfiguration="Debug"
+        }
+        default {
+            throw "unknown release mode, please set to either `"prod`" or `"test`""
+        }
+    }
+    return (new-object -typename PSObject -prop $info)
+}
+
+Function Echo-AzureSiteReleaseModeVariables {
+    $vars = Get-AzureSiteReleaseModeVariables
+    echo "Release mode = $($vars.ReleaseMode)"
+    echo "branch to deploy = $($vars.BranchName)"
+    echo "build config = $($vars.BuildConfiguration)"
+    echo "show drafts = $($vars.ShowDrafts)"
 }
 
