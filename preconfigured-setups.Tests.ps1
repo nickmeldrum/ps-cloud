@@ -36,6 +36,8 @@ Function Create-TestLocalGitRepo {
     cd $localGitPath
     git init
     echo "hello world!" > index.html
+    echo "*.publishsettings" > .gitignore
+    copy "$currentPath\*.publishsettings" .
     git add .
     git commit -m "initial commit"
 }
@@ -66,7 +68,11 @@ Function Create-TestStagingSite {
 # Github Webhook Functions
 #
 Function Test-StagingGithubWebhookShouldNotExist {
-    $webhook = (List-GithubWebhooks $githubRepo).config.url | where ({$_.indexof($stagingSitename) -ne -1})
+    $hooks = List-GithubWebhooks $githubRepo
+    if ($hooks.length -eq 0) {
+        return
+    }
+    $webhook =  $hooks.config.url | where ({$_.indexof($stagingSitename) -ne -1})
     if ($webhook -ne $null) {
         throw "webhook already exists!"
     }

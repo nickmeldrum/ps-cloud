@@ -134,7 +134,7 @@ Function List-GithubWebhooks {
     param ([string]$githubRepo)
     CheckVarNotNullOrWhiteSpace $githubRepo "Please pass in a valid githubRepo as a string"
 
-    Invoke-RestMethod -Uri "https://api.github.com/repos/$githubUsername/$githubRepo/hooks" -Method Get -Headers $headers
+    return Invoke-RestMethod -Uri "https://api.github.com/repos/$githubUsername/$githubRepo/hooks" -Method Get -Headers $headers
 }
 
 export-modulemember *-*
