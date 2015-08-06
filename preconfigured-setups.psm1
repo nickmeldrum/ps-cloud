@@ -19,6 +19,14 @@ Function Setup-NickMeldrumBlog {
 #Setup-SiteWithGithubDeployment "prod" $githubRepo $siteName "$azureStorageAppSettings;$prodblogAppSettings"
 }
 
+Function Setup-SiteWithHostname {
+    param ([string]$sitename, [string]$hostname)
+    Check-VarNotNullOrWhiteSpace $sitename "Please pass in a valid sitename as a string"
+    Check-VarNotNullOrWhiteSpace $hostname "Please pass in a valid hostname as a string"
+
+    azure site domain add $hostname $sitename
+}
+
 Function Setup-SiteWithGithubDeployment {
     param ([string]$releaseMode, [string]$githubRepo, [string]$sitename, [string]$appSettings)
 

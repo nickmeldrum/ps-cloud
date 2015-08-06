@@ -160,13 +160,17 @@ Describe "preconfigured sites setup" {
             $phpVersionEmpty | Should Be $true
         }
 
+        It "prod site has hostname added to it" {
+            $false | Should Be $true
+        }
+
         It "staging site is online with deployed content" {
             start-sleep -s 5
             Test-DeploymentCompleted $stagingSitename "initial commit"
             (curl -method "GET" -uri "http://$stagingSitename.azurewebsites.net/").content.trim() -eq "hello world!" | Should Be $true
         }
 
-        It "site picks up the appsettings that azure sets" {
+        It "pushing to github sets of a deployment and site picks up the appsettings that azure sets during deployment" {
             $deployMsg = "adding aspx page to check an appsetting"
             '<%@ Page Language="C#" %>' | out-file appsettings.aspx -encoding ascii
             '<%Response.Write(System.Configuration.ConfigurationSettings.AppSettings["testName"]); %>' | out-file appsettings.aspx -encoding ascii -append -noclobber
@@ -181,7 +185,6 @@ Describe "preconfigured sites setup" {
         }
 
 # TODO: STILL TO TEST:
-# committing to master and then pushing sets off a new deployment
 # that we have both a staging and a prod website and prod website deploys from release branch
 # that correct build configuration has been picked up
 # that azure storage has been setup correctly
