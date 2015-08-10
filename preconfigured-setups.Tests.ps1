@@ -105,12 +105,13 @@ Function Test-DeploymentCompleted {
     param ($sitename, $deployMsg)
 
     $timesToTestIfDeploymentOccurred = 0
-    while ($timesToTestIfDeploymentOccurred -eq 5) {
+    while ($timesToTestIfDeploymentOccurred -ne 5) {
         $currentDeployment = (Get-AzureWebsiteDeployment -name $sitename | where {$_.Current -eq $true})
         if ($currentDeployment.Status -eq "Success" -and $currentDeployment.Complete -eq "True" -and $currentDeployment.Message.trim() -eq $deployMsg) {
             return
         }
         start-sleep -s 5
+        $timesToTestIfDeploymentOccurred++
     }
     throw "deployment not completed within timeout"
 }
