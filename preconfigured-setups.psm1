@@ -36,23 +36,6 @@ Function Setup-NickMeldrumBlog {
     }
 }
 
-Function Setup-StorageAccount {
-    param([string]$storageAccountName)
-
-    $subscriptionId = (Get-AzureSubscription | where {$_.IsCurrent -eq $true}).Subscriptionid
-    $null = set-azuresubscription -subscriptionid $subscriptionId -currentstorageaccountname $storageAccountName
-    if (-not (get-azurestorageaccount).storageaccountname.contains($storageAccountName)) {
-        $null = New-AzureStorageAccount -storageaccountname $storageAccountName -location $azureLocation -type "Standard_LRS"
-    }
-
-    $accountKey = (Get-AzureStorageKey $storageAccountName).primary
-    $blobEndPoint = (Get-AzureStorageAccount $storageAccountName).endpoints | where {$_.tolowerinvariant().contains("blob")}
-
-    $returnHT = @{accountKey=$accountKey;blobEndPoint=$blobEndPoint}
-    $returnObj = new-object psobject -property $returnHT
-    return $returnObj
-}
-
 Function Setup-SiteWithGithubDeployment {
     param ([string]$releaseMode, [string]$githubRepo, [string]$sitename, [string]$appSettings)
 

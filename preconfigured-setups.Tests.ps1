@@ -118,7 +118,7 @@ Function Test-DeploymentCompleted {
 
 Describe "storage setup" {
     It "setting up storage account (creating it) returns key and endpoint" {
-        $details = Setup-StorageAccount $storageAccountName
+        $details = Get-AzureStorageAccountDetailsAndCreateIfNotExists $storageAccountName
 
         write-host $details
         $details.blobEndPoint | Should Not BeNullOrEmpty
@@ -126,18 +126,22 @@ Describe "storage setup" {
     }
 
     It "setting up storage account (when already created) returns key and endpoint" {
-        Setup-StorageAccount $storageAccountName
-        $details = Setup-StorageAccount $storageAccountName
+        Get-AzureStorageAccountDetailsAndCreateIfNotExists $storageAccountName
+        $details = Get-AzureStorageAccountDetailsAndCreateIfNotExists $storageAccountName
 
         write-host $details
         $details.blobEndPoint | Should Not BeNullOrEmpty
         $details.accountKey | Should Not BeNullOrEmpty
     }
 
-    It "can create a container on a new storage account" {
-        $details = Setup-StorageAccount $storageAccountName
+    It "can create a blob container and read and write to that container on a new storage account" {
+        $details = Get-AzureStorageAccountDetailsAndCreateIfNotExists $storageAccountName
         new-azurestoragecontainer -Name $storageContainerName -Permission "Blob"
-        $false | Should Be $true
+        
+        Put-AzureStorageBlobTextData "test.txt" "hello world!" $storageContainerName $storageAccountName $storageAccountKey
+        $getText = (Get-AzureStorageBlobTextData "test.txt" $storageContainerName $storageAccountName $storageAccountKey)
+
+        $getText | Should Be "hello world!"
     }
 
     AfterEach {
