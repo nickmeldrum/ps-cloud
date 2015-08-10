@@ -53,6 +53,8 @@ new-azurestoragecontainer -Name $storageContainerName -Permission "Blob"
 azure storage container delete $storageContainerName -q -c "DefaultEndpointsProtocol=https;AccountName=$storageAccountName;AccountKey=$accountKey"
 remove-azurestoragecontainer -name $storageContainerName -force
 
+##### Blobs:
+
 # list blobs in container:
 azure storage blob list $storageContainerName -c "DefaultEndpointsProtocol=https;AccountName=$storageAccountName;AccountKey=$accountKey"
 Get-AzureStorageBlob -container $storageContainerName
