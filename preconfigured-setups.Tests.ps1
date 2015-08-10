@@ -10,8 +10,8 @@ $stagingSuffix = "-staging"
 $randomString = [Guid]::NewGuid().ToString().replace("-", "").toupperinvariant().substring(5, 5)
 
 $stagingSiteName = "$siteNamePrefix$randomString$stagingSuffix"
-$storageAccountName = "pstest-$randomString-acc"
-$storageContainerName = "pstest-$randomString-cntr"
+$storageAccountName = "pstest$randomStringacc".tolowerinvariant()
+$storageContainerName = "pstest$randomStringcntr".tolowerinvariant()
 
 $currentPath = $pwd.Path
 $localGitPath = "C:\temp\$randomString"
@@ -105,10 +105,9 @@ Function Test-DeploymentCompleted {
     param ($sitename, $deployMsg)
 
     $timesToTestIfDeploymentOccurred = 0
-    while ($timesToTestIfDeploymentOccurred < 5) {
+    while ($timesToTestIfDeploymentOccurred -eq 5) {
         $currentDeployment = (Get-AzureWebsiteDeployment -name $sitename | where {$_.Current -eq $true})
-        if ($currentDeployment.Status -eq "Success" -and $currentDeployment.Complete -eq "True"
-                -and $currentDeployment.Message.trim() -eq $deployMsg) {
+        if ($currentDeployment.Status -eq "Success" -and $currentDeployment.Complete -eq "True" -and $currentDeployment.Message.trim() -eq $deployMsg) {
             return
         }
         start-sleep -s 5
