@@ -10,6 +10,8 @@ $stagingSuffix = "-staging"
 $randomString = [Guid]::NewGuid().ToString().replace("-", "").toupperinvariant().substring(5, 5)
 
 $stagingSiteName = "$siteNamePrefix$randomString$stagingSuffix"
+$storageAccountName = "pstest-$randomString-acc"
+$storageContainerName = "pstest-$randomString-cntr"
 
 $currentPath = $pwd.Path
 $localGitPath = "C:\temp\$randomString"
@@ -112,6 +114,35 @@ Function Test-DeploymentCompleted {
         start-sleep -s 5
     }
     throw "deployment not completed within timeout"
+}
+
+Describe "storage setup" {
+    It "setting up storage account (creating it) returns key and endpoint" {
+        $details = Setup-StorageAccount $storageAccountName
+
+        write-host $details
+        $details.blobEndPoint | Should Not BeNullOrEmpty
+        $details.accountKey | Should Not BeNullOrEmpty
+    }
+
+    It "setting up storage account (when already created) returns key and endpoint" {
+        Setup-StorageAccount $storageAccountName
+        $details = Setup-StorageAccount $storageAccountName
+
+        write-host $details
+        $details.blobEndPoint | Should Not BeNullOrEmpty
+        $details.accountKey | Should Not BeNullOrEmpty
+    }
+
+    It "can create a container on a new storage account" {
+        $details = Setup-StorageAccount $storageAccountName
+        new-azurestoragecontainer -Name $storageContainerName -Permission "Blob"
+        $false | Should Be $true
+    }
+
+    AfterEach {
+        Remove-AzureStorageAccount -StorageAccountName $storageAccountName
+    }
 }
 
 Describe "preconfigured sites setup" {

@@ -7,12 +7,22 @@ Function Setup-NickMeldrumBlog {
 
     Login-AzureApi
 
+# setup variables
     $githubRepo = "nickmeldrum.com.markdownblog"
     $siteName = "nickmeldrum"
     $stagingSiteName = "nickmeldrum-staging"
     $prodHostNames = @("nickmeldrum.com", "www.nickmeldrum.com", "nickmeldrum.net", "www.nickmeldrum.net")
+    $storageAccountName = "nickmeldrum"
+    $storageContainerName = "luceneindex"
+    $stagingStorageContainerName = "luceneindex-staging"
 
-    $azureStorageAppSettings = "azureStorageAccountName=nickmeldrum;azureStorageBlobEndPoint=https://nickmeldrum.blob.core.windows.net/;azureStorageKey=kVjV1bHjuK3jcShagvfwNV6lndMjb4h12pLNJgkcbQ2ZYQ/TFpXTWIdfORZLxOS0QdymmNfYVtWPZCDHyQZgSw=="
+# Create storage account and container
+    $storageAccount = Setup-StorageAccount $storageAccountName
+    new-azurestoragecontainer -Name $storageContainerName -Permission "Blob"
+    new-azurestoragecontainer -Name $stagingStorageContainerName -Permission "Blob"
+
+# Create appsettings
+    $azureStorageAppSettings = "azureStorageAccountName=$storageAccountName;azureStorageBlobEndPoint=${$storageAccount.blobEndPoint};azureStorageKey=${$storageAccount.accountKey}"
     $stagingblogAppSettings = "ShowDrafts=True;username-Nick-admin=$siteAdminPassword"
     $prodblogAppSettings = "ShowDrafts=False;username-Nick-admin=$siteAdminPassword"
 
@@ -24,6 +34,23 @@ Function Setup-NickMeldrumBlog {
     foreach ($hostname in $prodHostNames) {
         azure site domain add $hostname $sitename
     }
+}
+
+Function Setup-StorageAccount {
+    param([string]$storageAccountName)
+
+    $subscriptionId = (Get-AzureSubscription | where {$_.IsCurrent -eq $true}).Subscriptionid
+    $null = set-azuresubscription -subscriptionid $subscriptionId -currentstorageaccountname $storageAccountName
+    if (-not (get-azurestorageaccount).storageaccountname.contains($storageAccountName)) {
+        $null = New-AzureStorageAccount -storageaccountname $storageAccountName -location $azureLocation -type "Standard_LRS"
+    }
+
+    $accountKey = (Get-AzureStorageKey $storageAccountName).primary
+    $blobEndPoint = (Get-AzureStorageAccount $storageAccountName).endpoints | where {$_.tolowerinvariant().contains("blob")}
+
+    $returnHT = @{accountKey=$accountKey;blobEndPoint=$blobEndPoint}
+    $returnObj = new-object psobject -property $returnHT
+    return $returnObj
 }
 
 Function Setup-SiteWithGithubDeployment {
