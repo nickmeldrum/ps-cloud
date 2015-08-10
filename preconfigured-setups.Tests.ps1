@@ -205,7 +205,7 @@ Describe "preconfigured sites setup" {
             (curl -method "GET" -uri "http://$stagingSitename.azurewebsites.net/").content.trim() -eq "hello world!" | Should Be $true
         }
 
-        It "pushing to github sets of a deployment and site picks up the appsettings that azure sets during deployment" {
+        It "pushing to github sets off a deployment and site picks up the appsettings that azure sets during deployment" {
             $deployMsg = "adding aspx page to check an appsetting"
             '<%@ Page Language="C#" %>' | out-file appsettings.aspx -encoding ascii
             '<%Response.Write(System.Configuration.ConfigurationSettings.AppSettings["testName"]); %>' | out-file appsettings.aspx -encoding ascii -append -noclobber
