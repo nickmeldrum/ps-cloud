@@ -4,6 +4,8 @@ $StorageAccountName = "nickmeldrum"
 $StorageContainerName = "luceneindex"
 $StorageAccountKey = "kVjV1bHjuK3jcShagvfwNV6lndMjb4h12pLNJgkcbQ2ZYQ/TFpXTWIdfORZLxOS0QdymmNfYVtWPZCDHyQZgSw=="
 
+# thanks to this article for the complicated code! http://sqlblog.com/blogs/jamie_thomson/archive/2014/09/12/create-a-blob-in-azure-blob-storage-using-the-rest-api-and-powershell.aspx
+
 Function Put-AzureStorageBlobTextData {
     param ([string]$fileName, [string]$content, [string]$storageContainerName, [string]$storageAccountName, [string]$storageAccountKey)
 
