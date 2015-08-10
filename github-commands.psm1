@@ -31,7 +31,7 @@ Function CreateRemoteRepoAndPush {
         [string]$body
     )
 
-    Invoke-WebRequest -Uri $remoteRestUrl -Headers $repoHeaders -Method Post -Body $body
+    $null = Invoke-WebRequest -Uri $remoteRestUrl -Headers $repoHeaders -Method Post -Body $body
     git remote rm origin
     git remote add origin $remoteGitUrl 
     git push -u origin --all

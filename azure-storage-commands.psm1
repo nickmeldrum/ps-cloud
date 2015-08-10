@@ -1,5 +1,7 @@
 $ErrorActionPreference = "Stop"
 
+$azureLocation = "North Europe"
+
 Function Get-AzureStorageAccountDetailsAndCreateIfNotExists {
     param([string]$storageAccountName)
 

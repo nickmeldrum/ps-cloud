@@ -10,8 +10,8 @@ $stagingSuffix = "-staging"
 $randomString = [Guid]::NewGuid().ToString().replace("-", "").toupperinvariant().substring(5, 5)
 
 $stagingSiteName = "$siteNamePrefix$randomString$stagingSuffix"
-$storageAccountName = "pstest$randomStringacc".tolowerinvariant()
-$storageContainerName = "pstest$randomStringcntr".tolowerinvariant()
+$storageAccountName = "pstestacc$randomString".tolowerinvariant()
+$storageContainerName = "pstestcntr$randomString".tolowerinvariant()
 
 $currentPath = $pwd.Path
 $localGitPath = "C:\temp\$randomString"
