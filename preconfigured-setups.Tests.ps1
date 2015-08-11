@@ -7,9 +7,11 @@ import-module .\ps-cloud.psd1 -force
 
 $siteNamePrefix = "pstest-"
 $stagingSuffix = "-staging"
+$prodSuffix = "-prod"
 $randomString = [Guid]::NewGuid().ToString().replace("-", "").toupperinvariant().substring(5, 5)
 
 $stagingSiteName = "$siteNamePrefix$randomString$stagingSuffix"
+$prodSiteName = "$siteNamePrefix$randomString$prodSuffix"
 $storageAccountName = "pstestacc$randomString".tolowerinvariant()
 $storageContainerName = "pstestcntr$randomString".tolowerinvariant()
 
@@ -19,19 +21,19 @@ $githubRepo = "$siteNamePrefix$randomString"
 
 # Local Git Repo Functions
 #
-Function Test-LocalGitRepoShouldNotExist {
+Function LocalGitRepoShouldNotExist {
     if (test-path $localGitPath) {
         throw "local github folder already exists!"
     }
 }
 
-Function Delete-TestLocalGitRepo {
+Function Delete-LocalGitRepo {
     if (test-path $localGitPath) {
         remove-item $localgitpath -recurse -force
     }
 }
 
-Function Create-TestLocalGitRepo {
+Function Create-LocalGitRepo {
     write-host "creating local git repo $localGitPath..."
 
     mkdir $localGitPath
@@ -46,35 +48,35 @@ Function Create-TestLocalGitRepo {
 
 # Azure Site Functions
 #
-Function Test-StagingSiteShouldNotExist {
-    $sitenameIfExists = (azure site list | grep $stagingSitename | gawk '{print $2}')
+Function SiteShouldNotExist {
+    param ([string]$siteName)
+
+    $sitenameIfExists = (azure site list | grep $siteName | gawk '{print $2}')
     if ($sitenameIfExists -ne $null) {
         throw "Site already exists!"
     }
 }
 
-Function Delete-TestStagingSiteIfExists {
-    $sitenameIfExists = (azure site list | grep $stagingSitename | gawk '{print $2}')
+Function Delete-SiteIfExists {
+    param ([string]$siteName)
+
+    $sitenameIfExists = (azure site list | grep $siteName | gawk '{print $2}')
     if ($sitenameIfExists -ne $null) {
         write-host "deleting azure site $sitenameIfExists..."
-        azure site delete -q $stagingSitename
+        azure site delete -q $siteName
     }
-}
-
-Function Create-TestStagingSite {
-    write-host "setting up staging site $stagingSitename..."
-    write-host "against github repo: $githubRepo."
-    Setup-SiteWithGithubDeployment "test" $githubRepo $stagingSitename "testName=John"
 }
 
 # Github Webhook Functions
 #
-Function Test-StagingGithubWebhookShouldNotExist {
+Function GithubWebhookShouldNotExist {
+    param ([string]$siteName)
+
     $hooks = List-GithubWebhooks $githubRepo
     if ($hooks.length -eq 0) {
         return
     }
-    $webhook =  $hooks.config.url | where ({$_.indexof($stagingSitename) -ne -1})
+    $webhook =  $hooks.config.url | where ({$_.indexof($siteName) -ne -1})
     if ($webhook -ne $null) {
         throw "webhook already exists!"
     }
@@ -82,23 +84,18 @@ Function Test-StagingGithubWebhookShouldNotExist {
 
 # Github Repo Functions
 #
-Function Test-GithubRepoShouldNotExist {
+Function GithubRepoShouldNotExist {
     $repos = (List-GithubRepos).name | where {$_ -eq $githubrepo}
     if ($repos.length -ne 0) {
         throw "github repo already exists!"
     }
 }
 
-Function Delete-TestGithubRepoIfExists {
+Function Delete-GithubRepoIfExists {
     $repos = (List-GithubRepos).name | where {$_ -eq $githubrepo}
     if ($repos.length -ne 0) {
         Delete-GithubRepo $githubrepo
     }
-}
-
-Function Create-TestGithubRepo {
-    write-host "creating githubrepo $githubrepo..."
-    create-githubrepo $githubrepo
 }
 
 Function Test-DeploymentCompleted {
@@ -144,25 +141,30 @@ Describe "site setup" {
     BeforeAll {
         Check-VarNotNullOrWhiteSpace $githubPassword "github password not set?"
 
-        Test-LocalGitRepoShouldNotExist
-        Test-GithubRepoShouldNotExist
+        LocalGitRepoShouldNotExist
+        GithubRepoShouldNotExist
 
-        Create-TestLocalGitRepo
-        Create-TestGithubRepo
+        Create-LocalGitRepo
+
+        write-host "creating githubrepo $githubrepo..."
+        create-githubrepo $githubrepo
     }
 
     AfterAll {
         cd $currentPath
-        Delete-TestLocalGitRepo
-        delete-testgithubrepoifexists
+#        Delete-LocalGitRepo
+#        delete-githubrepoifexists
     }
    
     Context "create staging site" {
         BeforeAll {
-            Test-StagingSiteShouldNotExist
-            Test-StagingGithubWebhookShouldNotExist
+            SiteShouldNotExist $stagingSitename
+            GithubWebhookShouldNotExist $stagingSitename
 
-            Create-TestStagingSite
+            write-host "setting up staging site $stagingSitename"
+            write-host "against github repo: $githubRepo..."
+            Setup-SiteWithGithubDeployment "test" $githubRepo $stagingSitename "testName=John"
+
             $siteDetails = Get-AzureWebsite $stagingSitename
 
             write-host "github repo name: $githubrepo"
@@ -170,7 +172,7 @@ Describe "site setup" {
          }
 
         AfterAll {
-            Delete-TestStagingSiteIfExists
+#            Delete-SiteIfExists $stagingSitename
         }
 
         It "staging site has been created" {
@@ -186,8 +188,16 @@ Describe "site setup" {
             $phpVersionEmpty | Should Be $true
         }
 
-        It "prod site has hostname added to it" {
-            $false | Should Be $true
+        It "staging site has deployment branch set as master" {
+            $siteDetails.AppSettings.deployment_branch | Should Be "master"
+        }
+
+        It "staging site build configuration set as debug" {
+            $siteDetails.AppSettings.SCM_BUILD_ARGS | Should Be "-p:Configuration=Debug"
+        }
+
+        It "staging site is on Free SKU" {
+            $siteDetails.SKU | Should Be "Free"
         }
 
         It "staging site is online with deployed content" {
@@ -210,12 +220,72 @@ Describe "site setup" {
             (curl -method "GET" -uri "http://$stagingSitename.azurewebsites.net/appsettings.aspx").content.trim() -eq "john" | Should Be $true
         }
     }
+   
+    Context "create prod site" {
+        BeforeAll {
+            SiteShouldNotExist $prodSitename
+            GithubWebhookShouldNotExist $prodSitename
+
+            git checkout -b "Release"
+            "This is the release branch!" | out-file index.html -encoding ascii
+            git add .
+            git commit -m "release commit"
+            git push
+
+            write-host "setting up prod site $prodSitename"
+            write-host "against github repo: $githubRepo..."
+            Setup-SiteWithGithubDeployment "prod" $githubRepo $prodSitename "testName=John"
+
+            $siteDetails = Get-AzureWebsite $prodSitename
+
+            write-host "github repo name: $githubrepo"
+            write-host "prod site name: $prodSitename"
+        }
+
+        AfterAll {
+#            Delete-SiteIfExists $prodSiteName
+        }
+
+        It "prod site has been created" {
+            $siteDetails -eq $null | Should Be $false
+        }
+
+        It "prod site is enabled" {
+            $siteDetails.Enabled | Should Be $true
+        }
+
+        It "prod site php has been turned off" {
+            $phpVersionEmpty = [string]::IsNullOrWhitespace($siteDetails.phpVersion)
+            $phpVersionEmpty | Should Be $true
+        }
+
+        It "prod site has deployment branch set as release" {
+            $siteDetails.AppSettings.deployment_branch | Should Be "release"
+        }
+
+        It "prod site build configuration set as Release" {
+            $siteDetails.AppSettings.SCM_BUILD_ARGS | Should Be "-p:Configuration=Release"
+        }
+
+        It "prod site is on Shared SKU" {
+            $siteDetails.SKU | Should Be "Shared"
+        }
+
+        It "prod site has hostname added to it" {
+            $false | Should Be $true
+        }
+
+        It "prod site is online with deployed content from release branch" {
+            start-sleep -s 5
+            Test-DeploymentCompleted $prodSiteName "release commit"
+            (curl -method "GET" -uri "http://$prodSiteName.azurewebsites.net/").content.trim() -eq "This is the release branch!" | Should Be $true
+        }
+    }
 }
 
 # TODO: STILL TO TEST:
 # that we have both a staging and a prod website and prod website deploys from release branch
 # that correct build configuration has been picked up
-# that azure storage has been setup correctly
 # that hostname on prod website has been setup correctly
 # that staging site is on free plan and prod site on shared plan (cos of hostname)
 
