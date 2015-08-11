@@ -117,39 +117,30 @@ Function Test-DeploymentCompleted {
 }
 
 Describe "storage setup" {
-    It "setting up storage account (creating it) returns key and endpoint" {
-        $details = Get-AzureStorageAccountDetailsAndCreateIfNotExists $storageAccountName
-
-        write-host $details
-        $details.blobEndPoint | Should Not BeNullOrEmpty
-        $details.accountKey | Should Not BeNullOrEmpty
+    BeforeAll {
+        $script:details = Get-AzureStorageAccountDetailsAndCreateIfNotExists $storageAccountName
     }
 
-    It "setting up storage account (when already created) returns key and endpoint" {
-        Get-AzureStorageAccountDetailsAndCreateIfNotExists $storageAccountName
-        $details = Get-AzureStorageAccountDetailsAndCreateIfNotExists $storageAccountName
+    AfterAll {
+        Remove-AzureStorageAccount -StorageAccountName $storageAccountName
+    }
 
-        write-host $details
+    It "creating a storage account returns key and endpoint" {
         $details.blobEndPoint | Should Not BeNullOrEmpty
         $details.accountKey | Should Not BeNullOrEmpty
     }
 
     It "can create a blob container and read and write to that container on a new storage account" {
-        $details = Get-AzureStorageAccountDetailsAndCreateIfNotExists $storageAccountName
         new-azurestoragecontainer -Name $storageContainerName -Permission "Blob"
         
-        Put-AzureStorageBlobTextData "test.txt" "hello world!" $storageContainerName $storageAccountName $storageAccountKey
-        $getText = (Get-AzureStorageBlobTextData "test.txt" $storageContainerName $storageAccountName $storageAccountKey)
+        Put-AzureStorageBlobTextData "test.txt" "hello world!" $storageContainerName $storageAccountName $details.accountKey
+        $getText = (Get-AzureStorageBlobTextData "test.txt" $storageContainerName $storageAccountName $details.accountKey)
 
         $getText | Should Be "hello world!"
     }
-
-    AfterEach {
-        Remove-AzureStorageAccount -StorageAccountName $storageAccountName
-    }
 }
 
-Describe "preconfigured sites setup" {
+Describe "site setup" {
     BeforeAll {
         Check-VarNotNullOrWhiteSpace $githubPassword "github password not set?"
 
