@@ -230,7 +230,7 @@ Describe "site setup" {
             "This is the release branch!" | out-file index.html -encoding ascii
             git add .
             git commit -m "release commit"
-            git push
+            git push --set-upstream origin Release
 
             write-host "setting up prod site $prodSitename"
             write-host "against github repo: $githubRepo..."
@@ -282,10 +282,4 @@ Describe "site setup" {
         }
     }
 }
-
-# TODO: STILL TO TEST:
-# that we have both a staging and a prod website and prod website deploys from release branch
-# that correct build configuration has been picked up
-# that hostname on prod website has been setup correctly
-# that staging site is on free plan and prod site on shared plan (cos of hostname)
 

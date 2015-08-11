@@ -58,6 +58,10 @@ Function Setup-SiteWithGithubDeployment {
         azure site appsetting add $appSettings $sitename
     }
 
+    if ($vars.ReleaseMode -eq "prod") {
+        azure site scale mode --mode shared $sitename
+    }
+
 # Setup appsettings that kudu will read to know what branch to build and which build config msbuild should use
     azure site appsetting add "deployment_branch=$($vars.BranchName);SCM_BUILD_ARGS=-p:Configuration=$($vars.BuildConfiguration)" $sitename
 # Setup azure site (kudu) to create a github webhook to trigger a build and deploy on a push to github
