@@ -10,31 +10,29 @@ Function Setup-NickMeldrumBlog {
 
 # setup variables
     $githubRepo = "nickmeldrum.com.markdownblog"
-    $siteName = "nickmeldrum"
+    $prodSiteName = "nickmeldrum"
     $stagingSiteName = "nickmeldrum-staging"
     $prodHostNames = @("nickmeldrum.com", "www.nickmeldrum.com", "nickmeldrum.net", "www.nickmeldrum.net")
     $storageAccountName = "nickmeldrum"
-    $storageContainerName = "luceneindex"
+    $prodStorageContainerName = "luceneindex"
     $stagingStorageContainerName = "luceneindex-staging"
 
 # Create storage account and container
     $storageAccount = Setup-StorageAccount $storageAccountName
-    new-azurestoragecontainer -Name $storageContainerName -Permission "Blob"
+    new-azurestoragecontainer -Name $prodStorageContainerName -Permission "Blob"
     new-azurestoragecontainer -Name $stagingStorageContainerName -Permission "Blob"
 
 # Create appsettings
     $azureStorageAppSettings = "azureStorageAccountName=$storageAccountName;azureStorageBlobEndPoint=${$storageAccount.blobEndPoint};azureStorageKey=${$storageAccount.accountKey}"
-    $stagingblogAppSettings = "ShowDrafts=True;username-Nick-admin=$siteAdminPassword"
-    $prodblogAppSettings = "ShowDrafts=False;username-Nick-admin=$siteAdminPassword"
+    $stagingStorageAppSettings = "$azureStorageAppSettings;azureStorageContainerName=$stagingStorageContainerName"
+    $prodStorageAppSettings = "$azureStorageAppSettings;azureStorageContainerName=$prodStorageContainerName"
 
-    Setup-SiteWithGithubDeployment "test" $githubRepo $stagingSiteName "$azureStorageAppSettings;$stagingblogAppSettings"
+    $blogAppSettings = "username-Nick-admin=$siteAdminPassword"
+    $stagingblogAppSettings = "$blogAppSettings;ShowDrafts=True"
+    $prodblogAppSettings = "$blogAppSettings;ShowDrafts=False"
 
-    return
-    Setup-SiteWithGithubDeployment "prod" $githubRepo $siteName "$azureStorageAppSettings;$prodblogAppSettings"
-
-    foreach ($hostname in $prodHostNames) {
-        azure site domain add $hostname $sitename
-    }
+    Setup-SiteWithGithubDeployment "test" $githubRepo $stagingSiteName "$stagingStorageAppSettings;$stagingblogAppSettings"
+    Setup-SiteWithGithubDeployment "prod" $githubRepo $prodSiteName "$prodStorageAppSettings;$prodblogAppSettings"
 }
 
 Function Setup-SiteWithGithubDeployment {
