@@ -18,7 +18,7 @@ Function Setup-NickMeldrumBlog {
     $stagingStorageContainerName = "luceneindex-staging"
 
 # Create storage account and container
-    $storageAccount = Setup-StorageAccount $storageAccountName
+    $storageAccount = Get-AzureStorageAccountDetailsAndCreateIfNotExists $storageAccountName
     new-azurestoragecontainer -Name $prodStorageContainerName -Permission "Blob"
     new-azurestoragecontainer -Name $stagingStorageContainerName -Permission "Blob"
 
