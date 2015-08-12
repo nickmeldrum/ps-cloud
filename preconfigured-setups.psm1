@@ -1,6 +1,7 @@
 $ErrorActionPreference = "Stop"
 
 $azureLocation = "North Europe"
+$domainName = "nickmeldrum.com"
 
 Function Setup-NickMeldrumBlog {
     Check-VarNotNullOrWhiteSpace $siteAdminPassword "please setup a global variable siteAdminPassword outside this script as it must be kept secret"
@@ -37,7 +38,7 @@ Function Setup-NickMeldrumBlog {
 }
 
 Function Setup-SiteWithGithubDeployment {
-    param ([string]$releaseMode, [string]$githubRepo, [string]$sitename, [string]$appSettings)
+    param ([string]$releaseMode, [string]$githubRepo, [string]$sitename, [string]$appSettings, [string[]]$hostNames)
 
     Check-VarNotNullOrWhiteSpace $azureLocation "azureLocation variable should have been set up the top of the site powershell script"
     Check-VarNotNullOrWhiteSpace $githubUsername "doesn't look like your githubUsername variable has been setup, exiting. (Set up a global var with your username in .)"
@@ -60,6 +61,15 @@ Function Setup-SiteWithGithubDeployment {
 
     if ($vars.ReleaseMode -eq "prod") {
         azure site scale mode --mode shared $sitename
+
+        if ($hostNames.length -eq 0) {
+            write-host "no host names passed in for prod profile - just a warning!"
+        }
+
+        foreach ($hostName in $hostNames) {
+            Create-DnsimpleCnameRecord $domainName $sitename "$sitename.azurewebsites.net"
+            azure site domain add "$hostName.$domainName" $sitename
+        }
     }
 
 # Setup appsettings that kudu will read to know what branch to build and which build config msbuild should use

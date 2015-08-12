@@ -102,6 +102,7 @@ Function Test-DeploymentCompleted {
     param ($sitename, $deployMsg)
 
     $timesToTestIfDeploymentOccurred = 0
+    start-sleep -s 5
     while ($timesToTestIfDeploymentOccurred -ne 5) {
         $currentDeployment = (Get-AzureWebsiteDeployment -name $sitename | where {$_.Current -eq $true})
         if ($currentDeployment.Status -eq "Success" -and $currentDeployment.Complete -eq "True" -and $currentDeployment.Message.trim() -eq $deployMsg) {
@@ -152,8 +153,8 @@ Describe "site setup" {
 
     AfterAll {
         cd $currentPath
-#        Delete-LocalGitRepo
-#        delete-githubrepoifexists
+        Delete-LocalGitRepo
+        delete-githubrepoifexists
     }
    
     Context "create staging site" {
@@ -172,7 +173,7 @@ Describe "site setup" {
          }
 
         AfterAll {
-#            Delete-SiteIfExists $stagingSitename
+            Delete-SiteIfExists $stagingSitename
         }
 
         It "staging site has been created" {
@@ -226,15 +227,15 @@ Describe "site setup" {
             SiteShouldNotExist $prodSitename
             GithubWebhookShouldNotExist $prodSitename
 
-            git checkout -b "Release"
+            git checkout -b "release"
             "This is the release branch!" | out-file index.html -encoding ascii
             git add .
             git commit -m "release commit"
-            git push --set-upstream origin Release
+            git push --set-upstream origin release
 
             write-host "setting up prod site $prodSitename"
             write-host "against github repo: $githubRepo..."
-            Setup-SiteWithGithubDeployment "prod" $githubRepo $prodSitename "testName=John"
+            Setup-SiteWithGithubDeployment "prod" $githubRepo $prodSitename "testName=John" @($prodSitename)
 
             $siteDetails = Get-AzureWebsite $prodSitename
 
@@ -243,7 +244,7 @@ Describe "site setup" {
         }
 
         AfterAll {
-#            Delete-SiteIfExists $prodSiteName
+            Delete-SiteIfExists $prodSiteName
         }
 
         It "prod site has been created" {
@@ -271,14 +272,14 @@ Describe "site setup" {
             $siteDetails.SKU | Should Be "Shared"
         }
 
-        It "prod site has hostname added to it" {
-            $false | Should Be $true
-        }
-
         It "prod site is online with deployed content from release branch" {
-            start-sleep -s 5
             Test-DeploymentCompleted $prodSiteName "release commit"
             (curl -method "GET" -uri "http://$prodSiteName.azurewebsites.net/").content.trim() -eq "This is the release branch!" | Should Be $true
+        }
+
+        It "prod site has hostname added to it" {
+            Test-DeploymentCompleted $prodSiteName "release commit"
+            (curl -method GET -uri "http://$prodSiteName.nickmeldrum.com/").content.trim() -eq "This is the release branch!" | Should Be $true
         }
     }
 }
