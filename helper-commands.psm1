@@ -8,5 +8,13 @@ Function Check-VarNotNullOrWhiteSpace {
     }
 }
 
+Function Delete-AllTestSites {
+    (get-azurewebsite).name | where {$_.startswith("pstest")} | % { remove-azurewebsite -force -name $_ }
+}
+
+Function Delete-AllTestRepos {
+    (List-GithubRepos).name | where { $_.startswith("pstest") } | % { delete-githubrepo $_ }
+}
+
 export-modulemember *-*
 
