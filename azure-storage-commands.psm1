@@ -7,7 +7,8 @@ Function Get-AzureStorageAccountDetailsAndCreateIfNotExists {
 
     $subscriptionId = (Get-AzureSubscription | where {$_.IsCurrent -eq $true}).Subscriptionid
     $null = set-azuresubscription -subscriptionid $subscriptionId -currentstorageaccountname $storageAccountName
-    if (-not (get-azurestorageaccount).storageaccountname.contains($storageAccountName)) {
+    $storageAccounts = get-azurestorageaccount
+    if ($storageAccounts.Count -eq 0 -or -not $storageAccounts.storageaccountname.contains($storageAccountName)) {
         $null = New-AzureStorageAccount -storageaccountname $storageAccountName -location $azureLocation -type "Standard_LRS"
     }
 
