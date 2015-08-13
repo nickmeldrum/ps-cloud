@@ -1,7 +1,6 @@
 $ErrorActionPreference = "Stop"
 
 $azureLocation = "North Europe"
-$domainName = "nickmeldrum.com"
 
 Function Setup-NickMeldrumBlog {
     Check-VarNotNullOrWhiteSpace $siteAdminPassword "please setup a global variable siteAdminPassword outside this script as it must be kept secret"
@@ -12,7 +11,7 @@ Function Setup-NickMeldrumBlog {
     $githubRepo = "nickmeldrum.com.markdownblog"
     $prodSiteName = "nickmeldrum"
     $stagingSiteName = "nickmeldrum-staging"
-    $prodHostNames = @("nickmeldrum.com", "www.nickmeldrum.com", "nickmeldrum.net", "www.nickmeldrum.net")
+    $prodHostNames = @("*.nickmeldrum.com", "www.nickmeldrum.com", "*.nickmeldrum.net", "www.nickmeldrum.net")
     $storageAccountName = "nickmeldrum"
     $prodStorageContainerName = "luceneindex"
     $stagingStorageContainerName = "luceneindex-staging"
@@ -64,16 +63,40 @@ Function Setup-SiteWithGithubDeployment {
             write-host "no host names passed in for prod profile - just a warning!"
         }
 
-        foreach ($hostName in $hostNames) {
-            Create-DnsimpleCnameRecord $domainName $sitename "$sitename.azurewebsites.net"
-            azure site domain add "$hostName.$domainName" $sitename
-        }
+        Set-HostNamesInDnsimpleAndAzure $hostNames $siteName
     }
 
 # Setup appsettings that kudu will read to know what branch to build and which build config msbuild should use
     azure site appsetting add "deployment_branch=$($vars.BranchName);SCM_BUILD_ARGS=-p:Configuration=$($vars.BuildConfiguration)" $sitename
 # Setup azure site (kudu) to create a github webhook to trigger a build and deploy on a push to github
     azure site deployment github --githubusername $githubUsername --githubpassword $githubPassword --githubrepository "$githubUsername/$githubRepo" $sitename 
+}
+
+Function Set-HostNamesInDnsimpleAndAzure {
+    param ([string[]]$hostNames, $sitename)
+
+    $ipaddress = ([System.Net.Dns]::GetHostAddresses("$sitename.azurewebsites.net")).ipaddresstostring
+
+    foreach ($hostName in $hostNames) {
+        $hostHeader = $hostName.substring(0, $hostName.indexof("."))
+        $domainName = $hostName.substring($hostName.indexof(".") + 1)
+
+        $aRecords = (Get-DnsimpleARecords $domainName)
+        $cnameRecords = (Get-DnsimpleCnameRecords $domainName)
+
+        if ($aRecords.length -eq 0 -or -not $aRecords.name.contains("")) {
+            Create-DnsimpleARecord $domainName "" $ipaddress
+        }
+
+        if ($cnameRecords.length -gt 0 -and -not $cnameRecords.name.contains($hostHeader)) {
+            Create-DnsimpleCnameRecord $domainName $hostHeader "$sitename.azurewebsites.net"
+        }
+
+        if ($hostName.startswith("*.")) {
+            $hostName = $domainName
+        }
+        azure site domain add $hostName $sitename
+    }
 }
 
 Function Set-ReleaseMode {
