@@ -23,7 +23,7 @@ Function Setup-NickMeldrumBlog {
     new-azurestoragecontainer -Name $stagingStorageContainerName -Permission "Blob"
 
 # Create appsettings
-    $azureStorageAppSettings = "azureStorageAccountName=$storageAccountName;azureStorageBlobEndPoint=${$storageAccount.blobEndPoint};azureStorageKey=${$storageAccount.accountKey}"
+    $azureStorageAppSettings = "azureStorageAccountName=$storageAccountName;azureStorageBlobEndPoint=$($storageAccount.blobEndPoint);azureStorageKey=$($storageAccount.accountKey)"
     $stagingStorageAppSettings = "$azureStorageAppSettings;azureStorageContainerName=$stagingStorageContainerName"
     $prodStorageAppSettings = "$azureStorageAppSettings;azureStorageContainerName=$prodStorageContainerName"
 
