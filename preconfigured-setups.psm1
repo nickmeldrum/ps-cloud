@@ -32,7 +32,7 @@ Function Setup-NickMeldrumBlog {
     $prodblogAppSettings = "$blogAppSettings;ShowDrafts=False"
 
     Setup-SiteWithGithubDeployment "test" $githubRepo $stagingSiteName "$stagingStorageAppSettings;$stagingblogAppSettings"
-    Setup-SiteWithGithubDeployment "prod" $githubRepo $prodSiteName "$prodStorageAppSettings;$prodblogAppSettings"
+    Setup-SiteWithGithubDeployment "prod" $githubRepo $prodSiteName "$prodStorageAppSettings;$prodblogAppSettings" $prodHostNames
 }
 
 Function Setup-SiteWithGithubDeployment {
