@@ -26,14 +26,11 @@ Function Setup-NickMeldrumBlog {
     if ((get-azurestoragecontainer | where { $_.name -eq $stagingStorageContainerName }).count -gt 0) {
         Remove-AzureStorageContainer -Name $stagingStorageContainerName -Force
     }
-    new-azurestoragecontainer -Name $stagingStorageContainerName -Permission "Blob"
 
     if ((get-azurestoragecontainer | where { $_.name -eq $prodStorageContainerName }).count -gt 0) {
         Remove-AzureStorageContainer -Name $prodStorageContainerName -Force
     }
-    new-azurestoragecontainer -Name $prodStorageContainerName -Permission "Blob"
 
-# Create appsettings
     $azureStorageAppSettings = "azureStorageAccountName=$storageAccountName;azureStorageBlobEndPoint=$($storageAccount.blobEndPoint);azureStorageKey=$($storageAccount.accountKey)"
     $stagingStorageAppSettings = "$azureStorageAppSettings;azureStorageContainerName=$stagingStorageContainerName"
     $prodStorageAppSettings = "$azureStorageAppSettings;azureStorageContainerName=$prodStorageContainerName"
@@ -44,6 +41,35 @@ Function Setup-NickMeldrumBlog {
 
     Setup-SiteWithGithubDeployment "test" $githubRepo $stagingSiteName "$stagingStorageAppSettings;$stagingblogAppSettings"
     Setup-SiteWithGithubDeployment "prod" $githubRepo $prodSiteName "$prodStorageAppSettings;$prodblogAppSettings" $prodHostNames
+
+    Try-CreateAzureStorageContainer $stagingStorageContainerName
+    Try-CreateAzureStorageContainer $prodStorageContainerName
+}
+
+Function Try-CreateAzureStorageContainer {
+    param ([string]$name)
+
+    $timesToTry = 0
+    $succeeded = false
+
+    start-sleep -s 5
+    while ($timesToTry -ne 5) {
+        try {
+            new-azurestoragecontainer -Name $name -Permission "Blob"
+            $succeeded = $true
+        }
+        catch [system.exception] {
+        }
+        
+        if ($succeeded) {
+            return
+        }
+
+        start-sleep -s 5
+        $timesToTry++
+    }
+
+    throw "creating azure storage container not completed within set time"
 }
 
 Function Setup-SiteWithGithubDeployment {
