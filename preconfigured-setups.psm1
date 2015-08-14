@@ -4,6 +4,10 @@ $azureLocation = "North Europe"
 
 Function Setup-NickMeldrumBlog {
     Check-VarNotNullOrWhiteSpace $siteAdminPassword "please setup a global variable siteAdminPassword outside this script as it must be kept secret"
+    Check-VarNotNullOrWhiteSpace $githubUsername "doesn't look like your githubUsername variable has been setup, exiting. (Set up a global var with your username in .)"
+    Check-VarNotNullOrWhiteSpace $githubPassword "doesn't look like your githubPassword variable has been setup, exiting. (Set up a global var with your password in.)"
+    Check-VarNotNullOrWhiteSpace $dnsimpleEmail "doesn't look like your dnsimpleEmail variable has been setup, exiting. (Set up a global var with your username in .)"
+    Check-VarNotNullOrWhiteSpace $dnsimpleToken "doesn't look like your dnsimpleToken variable has been setup, exiting. (Set up a global var with your password in.)"
 
     Login-AzureApi
 
