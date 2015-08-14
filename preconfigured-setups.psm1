@@ -52,8 +52,8 @@ Function Setup-SiteWithGithubDeployment {
 
     azure site set --php-version off $sitename
 
-    if (-not [string]::IsNullOrWhiteSpace($sitename)) {
-        azure site appsetting add $appSettings $sitename
+    if (-not [string]::IsNullOrWhiteSpace($appSettings)) {
+        azure site appsetting add $appSettings $siteName
     }
 
     if ($vars.ReleaseMode -eq "prod") {
