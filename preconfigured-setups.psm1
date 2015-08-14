@@ -18,8 +18,16 @@ Function Setup-NickMeldrumBlog {
 
 # Create storage account and container
     $storageAccount = Get-AzureStorageAccountDetailsAndCreateIfNotExists $storageAccountName
-    new-azurestoragecontainer -Name $prodStorageContainerName -Permission "Blob"
+
+    if ((get-azurestoragecontainer | where { $_.name -eq $stagingStorageContainerName }).count -gt 0) {
+        Remove-AzureStorageContainer -Name $stagingStorageContainerName -Force
+    }
     new-azurestoragecontainer -Name $stagingStorageContainerName -Permission "Blob"
+
+    if ((get-azurestoragecontainer | where { $_.name -eq $prodStorageContainerName }).count -gt 0) {
+        Remove-AzureStorageContainer -Name $prodStorageContainerName -Force
+    }
+    new-azurestoragecontainer -Name $prodStorageContainerName -Permission "Blob"
 
 # Create appsettings
     $azureStorageAppSettings = "azureStorageAccountName=$storageAccountName;azureStorageBlobEndPoint=$($storageAccount.blobEndPoint);azureStorageKey=$($storageAccount.accountKey)"
@@ -48,6 +56,7 @@ Function Setup-SiteWithGithubDeployment {
     Set-ReleaseMode $ReleaseMode
     $vars = Get-AzureSiteReleaseModeVariables
 
+    remove-azurewebsite $sitename -force
     azure site create --location $azureLocation $sitename
 
     azure site set --php-version off $sitename
@@ -83,15 +92,18 @@ Function Set-HostNamesInDnsimpleAndAzure {
         $domainName = $hostName.substring($hostName.indexof(".") + 1)
 
         $aRecords = (Get-DnsimpleARecords $domainName)
+        if ($aRecords.length -gt 0 -and $aRecords.name.contains("")) {
+            $id = (get-DnsimpleARecords $domainName | where {$_.name -eq ""}).id
+            Delete-DNSimpleRecord $domainName $id
+        }
+        Create-DnsimpleARecord $domainName "" $ipaddress
+
         $cnameRecords = (Get-DnsimpleCnameRecords $domainName)
-
-        if ($aRecords.length -eq 0 -or -not $aRecords.name.contains("")) {
-            Create-DnsimpleARecord $domainName "" $ipaddress
+        if ($cnameRecords.length -gt 0 -and $cnameRecords.name.contains($hostHeader)) {
+            $id = (get-DnsimpleCnameRecords $domainName | where {$_.name -eq $hostHeader}).id
+            Delete-DNSimpleRecord $domainName $id
         }
-
-        if ($cnameRecords.length -gt 0 -and -not $cnameRecords.name.contains($hostHeader)) {
-            Create-DnsimpleCnameRecord $domainName $hostHeader "$sitename.azurewebsites.net"
-        }
+        Create-DnsimpleCnameRecord $domainName $hostHeader "$sitename.azurewebsites.net"
 
         if ($hostName.startswith("*.")) {
             $hostName = $domainName
