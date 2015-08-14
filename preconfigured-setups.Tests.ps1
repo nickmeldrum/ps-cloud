@@ -284,3 +284,37 @@ Describe "site setup" {
     }
 }
 
+Describe "setup nickmeldrum blog" {
+    BeforeAll {
+        Setup-NickMeldrumBlog
+    }
+
+    It "staging site is reachable from azurewebsites domain" {
+        $false | Should Be $true
+    }
+
+    It "staging site has site deployed onto it" {
+        $false | Should Be $true
+    }
+
+    It "staging site has search functionality working" {
+        $false | Should Be $true
+    }
+
+    It "prod site is reachable from azurewebsites domain" {
+        $false | Should Be $true
+    }
+
+    It "prod site is reachable from nickmeldrum.com" {
+        $false | Should Be $true
+    }
+
+    It "prod site has site deployed onto it" {
+        $false | Should Be $true
+    }
+
+    It "prod site has search functionality working" {
+        $false | Should Be $true
+    }
+}
+
