@@ -56,8 +56,8 @@ Function Ensure-Deployment {
     $vars = Get-AzureSiteReleaseModeVariables $releaseMode
 
     $currentPath = $pwd.Path
-    $currentBranch = git rev-parse --abbrev-ref HEAD
     cd $localRepo
+    $currentBranch = git rev-parse --abbrev-ref HEAD
     git checkout $vars.BranchName
     Add-Content .\Web\Views\Shared\_Layout.cshtml "`r`n"
     git add .
