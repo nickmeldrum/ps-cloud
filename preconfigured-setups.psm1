@@ -12,6 +12,7 @@ Function Setup-NickMeldrumBlog {
     Login-AzureApi
 
 # setup variables
+    $localRepo = "C:\Work\nickmeldrum\nickmeldrum.com.markdownblog"
     $githubRepo = "nickmeldrum.com.markdownblog"
     $prodSiteName = "nickmeldrum"
     $stagingSiteName = "nickmeldrum-staging"
@@ -44,6 +45,26 @@ Function Setup-NickMeldrumBlog {
 
     Try-CreateAzureStorageContainer $stagingStorageContainerName
     Try-CreateAzureStorageContainer $prodStorageContainerName
+
+    Ensure-Deployment "test" $stagingSiteName $localRepo
+    Ensure-Deployment "prod" $prodSiteName $localRepo
+}
+
+Function Ensure-Deployment {
+    param ([string]$releaseMode, [string]$siteName, [string]$localRepo)
+
+    $vars = Get-AzureSiteReleaseModeVariables $releaseMode
+
+    $currentPath = $pwd.Path
+    $currentBranch = git rev-parse --abbrev-ref HEAD
+    cd $localRepo
+    git checkout $vars.BranchName
+    Add-Content .\Web\Views\Shared\_Layout.cshtml "`r`n"
+    git add .
+    git commit -m "deployment trigger commit"
+    git push
+    git checkout $currentBranch
+    cd $currentPath
 }
 
 Function Try-CreateAzureStorageContainer {
@@ -83,8 +104,7 @@ Function Setup-SiteWithGithubDeployment {
     Check-VarNotNullOrWhiteSpace $githubRepo "Please pass in a valid githubRepo as a string"
     Check-VarNotNullOrWhiteSpace $sitename "Please pass in a valid sitename as a string"
  
-    Set-ReleaseMode $ReleaseMode
-    $vars = Get-AzureSiteReleaseModeVariables
+    $vars = Get-AzureSiteReleaseModeVariables $ReleaseMode
 
     remove-azurewebsite $sitename -force
     azure site create --location $azureLocation $sitename
@@ -142,27 +162,10 @@ Function Set-HostNamesInDnsimpleAndAzure {
     }
 }
 
-Function Set-ReleaseMode {
+Function Get-AzureSiteReleaseModeVariables {
     param ([string]$relMode)
 
-    $script:releaseMode = $relMode
-}
-
-Function Get-ReleaseMode {
-    return $releaseMode
-}
-
-Function CheckReleaseModeSet {
-    $relMode = Get-ReleaseMode
-    Check-VarNotNullOrWhiteSpace $relMode "doesn't look like your release mode has been setup, exiting. (Run Set-ReleaseMode to set this.)"
-}
-
-Function Get-AzureSiteReleaseModeVariables {
-    CheckReleaseModeSet
-
     $info = @{}
-
-    $relMode = Get-ReleaseMode
 
     switch ($relMode.ToLower().Substring(0, 4)) {
         "prod" {
@@ -180,13 +183,5 @@ Function Get-AzureSiteReleaseModeVariables {
         }
     }
     return (new-object -typename PSObject -prop $info)
-}
-
-Function Echo-AzureSiteReleaseModeVariables {
-    $vars = Get-AzureSiteReleaseModeVariables
-    echo "Release mode = $($vars.ReleaseMode)"
-    echo "branch to deploy = $($vars.BranchName)"
-    echo "build config = $($vars.BuildConfiguration)"
-    echo "show drafts = $($vars.ShowDrafts)"
 }
 
