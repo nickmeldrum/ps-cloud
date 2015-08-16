@@ -25,10 +25,12 @@ Function Setup-NickMeldrumBlog {
     $storageAccount = Get-AzureStorageAccountDetailsAndCreateIfNotExists $storageAccountName
 
     if ((get-azurestoragecontainer | where { $_.name -eq $stagingStorageContainerName }).count -gt 0) {
+        echo "removing azure storage container $stagingStorageContainerName..."
         Remove-AzureStorageContainer -Name $stagingStorageContainerName -Force
     }
 
     if ((get-azurestoragecontainer | where { $_.name -eq $prodStorageContainerName }).count -gt 0) {
+        echo "removing azure storage container $prodStorageContainerName..."
         Remove-AzureStorageContainer -Name $prodStorageContainerName -Force
     }
 
