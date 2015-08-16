@@ -74,19 +74,21 @@ Function Try-CreateAzureStorageContainer {
     $succeeded = false
 
     start-sleep -s 5
-    while ($timesToTry -ne 5) {
+    while ($timesToTry -ne 10) {
         try {
             new-azurestoragecontainer -Name $name -Permission "Blob"
             $succeeded = $true
         }
         catch [system.exception] {
+            echo "creating storage container failed with message: " + $_.Exception.Message
+            echo "trying again..."
         }
         
         if ($succeeded) {
             return
         }
 
-        start-sleep -s 5
+        start-sleep -s 10
         $timesToTry++
     }
 
