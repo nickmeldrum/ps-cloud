@@ -12,6 +12,9 @@ Function Get-AzureStorageAccountDetailsAndCreateIfNotExists {
         echo "storage account: $storageAccountName not found, creating it..."
         $null = New-AzureStorageAccount -storageaccountname $storageAccountName -location $azureLocation -type "Standard_LRS"
     }
+    else {
+        echo "using existing $storageAccountName storage account..."
+    }
 
     $accountKey = (Get-AzureStorageKey $storageAccountName).primary
     $blobEndPoint = (Get-AzureStorageAccount $storageAccountName).endpoints | where {$_.tolowerinvariant().contains("blob")}
