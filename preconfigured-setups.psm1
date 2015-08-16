@@ -61,9 +61,11 @@ Function Ensure-Deployment {
     cd $localRepo
     $currentBranch = git rev-parse --abbrev-ref HEAD
     git checkout $vars.BranchName
+    echo "adding newline to a view and committing..."
     Add-Content .\Web\Views\Shared\_Layout.cshtml "`r`n"
     git add .
     git commit -m "deployment trigger commit"
+    echo "pushing to github to ensure deployment..."
     git push
     git checkout $currentBranch
     cd $currentPath
@@ -83,6 +85,10 @@ Function Try-CreateAzureStorageContainer {
         }
         catch [system.exception] {
             echo "creating storage container failed with message: " + $_.Exception.Message
+
+            echo "attempting to remove storage container $name again..."
+            Remove-AzureStorageContainer -Name $name -Force
+
             echo "trying again..."
         }
         
@@ -110,22 +116,30 @@ Function Setup-SiteWithGithubDeployment {
  
     $vars = Get-AzureSiteReleaseModeVariables $ReleaseMode
 
+    echo "removing site $sitename if it exists..."
     remove-azurewebsite $sitename -force
+
+    echo "creating site $sitename..."
     azure site create --location $azureLocation $sitename
 
+    echo "turning php off!..."
     azure site set --php-version off $sitename
 
     if (-not [string]::IsNullOrWhiteSpace($appSettings)) {
+        echo "adding site appsettings..."
         azure site appsetting add $appSettings $siteName
     }
 
 # Setup appsettings that kudu will read to know what branch to build and which build config msbuild should use
+    echo "creating deployment appsettings for kudu..."
     azure site appsetting add "deployment_branch=$($vars.BranchName);SCM_BUILD_ARGS=-p:Configuration=$($vars.BuildConfiguration)" $sitename
 # Setup azure site (kudu) to create a github webhook to trigger a build and deploy on a push to github
     Delete-GithubWebhook $githubRepo -triggerurlsubstring "$sitename.scm.azurewebsites.net/deploy"
+    echo "setting up github deployment..."
     azure site deployment github --githubusername $githubUsername --githubpassword $githubPassword --githubrepository "$githubUsername/$githubRepo" $sitename 
 
     if ($vars.ReleaseMode -eq "prod") {
+        echo "setting site to shared mode..."
         azure site scale mode --mode shared $sitename
 
         if ($hostNames.length -eq 0) {
