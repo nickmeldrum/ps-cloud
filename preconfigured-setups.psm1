@@ -144,7 +144,7 @@ Function Set-HostNamesInDnsimpleAndAzure {
         $domainName = $hostName.substring($hostName.indexof(".") + 1)
 
         $aRecords = (Get-DnsimpleARecords $domainName)
-        if ($aRecords.length -gt 0 -and $aRecords.name.contains("")) {
+        if ($aRecords.id.length -gt 0 -and $aRecords.name.contains("")) {
             $id = (get-DnsimpleARecords $domainName | where {$_.name -eq ""}).id
             Delete-DNSimpleRecord $domainName $id
         }
@@ -160,6 +160,7 @@ Function Set-HostNamesInDnsimpleAndAzure {
         if ($hostName.startswith("*.")) {
             $hostName = $domainName
         }
+
         azure site domain add $hostName $sitename
     }
 }

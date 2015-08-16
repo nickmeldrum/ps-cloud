@@ -35,9 +35,11 @@ Function Create-DnsimpleCnameRecord {
     Check-VarNotNullOrWhiteSpace $dnsimpleEmail "please set a dnsimpleEmail variable globally for example in your powershell profile"
     Check-VarNotNullOrWhiteSpace $dnsimpleToken "please set a dnsimpleToken variable globally for example in your powershell profile"
 
+    echo "creating CNAME record for name '$name' at $domainName pointing to $content"
+
     $bodyJson = "{ `"record`": { `"name`": `"$name`", `"record_type`": `"CNAME`", `"content`": `"$content`" } }"
 
-    curl -method "POST" -uri "https://api.dnsimple.com/v1/domains/$domainName/records" -header $headers -body $bodyJson
+    $null = curl -method "POST" -uri "https://api.dnsimple.com/v1/domains/$domainName/records" -header $headers -body $bodyJson
 }
 
 Function Create-DnsimpleARecord {
@@ -48,9 +50,11 @@ Function Create-DnsimpleARecord {
     Check-VarNotNullOrWhiteSpace $dnsimpleEmail "please set a dnsimpleEmail variable globally for example in your powershell profile"
     Check-VarNotNullOrWhiteSpace $dnsimpleToken "please set a dnsimpleToken variable globally for example in your powershell profile"
 
+    echo "creating A record for name '$name' at $domainName pointing to $content..."
+
     $bodyJson = "{ `"record`": { `"name`": `"$name`", `"record_type`": `"A`", `"content`": `"$content`" } }"
 
-    curl -method "POST" -uri "https://api.dnsimple.com/v1/domains/$domainName/records" -header $headers -body $bodyJson
+    $null = curl -method "POST" -uri "https://api.dnsimple.com/v1/domains/$domainName/records" -header $headers -body $bodyJson
 }
 
 Function Delete-DnsimpleRecord {
@@ -61,6 +65,8 @@ Function Delete-DnsimpleRecord {
     Check-VarNotNullOrWhiteSpace $dnsimpleEmail "please set a dnsimpleEmail variable globally for example in your powershell profile"
     Check-VarNotNullOrWhiteSpace $dnsimpleToken "please set a dnsimpleToken variable globally for example in your powershell profile"
 
-    curl -method "DELETE" -uri "https://api.dnsimple.com/v1/domains/$domainName/records/$id" -header $headers
+    echo "deleting record for domain name $domainName with id $id..."
+
+    $null = curl -method "DELETE" -uri "https://api.dnsimple.com/v1/domains/$domainName/records/$id" -header $headers
 }
 
