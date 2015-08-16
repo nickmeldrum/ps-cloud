@@ -87,7 +87,9 @@ Function Try-CreateAzureStorageContainer {
             echo "creating storage container failed with message: " + $_.Exception.Message
 
             echo "attempting to remove storage container $name again..."
-            Remove-AzureStorageContainer -Name $name -Force
+            if ((get-azurestoragecontainer | where { $_.name -eq $name}).count -gt 0) {
+                Remove-AzureStorageContainer -Name $name -Force
+            }
 
             echo "trying again..."
         }
