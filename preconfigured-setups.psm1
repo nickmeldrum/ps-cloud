@@ -134,7 +134,7 @@ Function Setup-SiteWithGithubDeployment {
 
 # Setup appsettings that kudu will read to know what branch to build and which build config msbuild should use
     echo "creating deployment appsettings for kudu..."
-    azure site appsetting add "deployment_branch=$($vars.BranchName);SCM_BUILD_ARGS=-p:Configuration=$($vars.BuildConfiguration)" $sitename
+    azure site appsetting add "deployment_branch=$($vars.BranchName);SCM_BUILD_ARGS=-p:Configuration=$($vars.BuildConfiguration);SCM_POST_DEPLOYMENT_ACTIONS_PATH=build\post-deploy-actions" $sitename
 # Setup azure site (kudu) to create a github webhook to trigger a build and deploy on a push to github
     Delete-GithubWebhook $githubRepo -triggerurlsubstring "$sitename.scm.azurewebsites.net/deploy"
     echo "setting up github deployment..."
