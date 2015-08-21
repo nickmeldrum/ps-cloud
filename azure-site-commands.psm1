@@ -9,7 +9,6 @@ Function Get-AzureSiteCurrentDeployment {
 
 Function Get-AzureSiteCurrentDeploymentPS {
     param ([string]$sitename)
-    FunctionPreflight $sitename
 
     return Get-AzureWebsiteDeployment -name $sitename | where {$_.Current -eq $true}
 }
