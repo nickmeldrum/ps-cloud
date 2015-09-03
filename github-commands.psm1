@@ -61,7 +61,7 @@ Function Create-GithubRepo {
 
     $json = "{`"name`":`"" + $githubRepo + "`"}"
 
-    CreateRemoteRepoAndPush "https://api.github.com/user/repos" "https://github.com/$githubUsername/$githubRepo.git" $headers $json
+    CreateRemoteRepoAndPush "https://api.github.com/user/repos" "https://$githubUsername@github.com/$githubUsername/$githubRepo.git" $headers $json
 }
 
 Function Create-BitbucketPrivateRepo {
