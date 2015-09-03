@@ -235,7 +235,7 @@ Describe "site setup" {
 
             write-host "setting up prod site $prodSitename"
             write-host "against github repo: $githubRepo..."
-            Setup-SiteWithGithubDeployment "prod" $githubRepo $prodSitename "testName=John" @($prodSitename)
+            Setup-SiteWithGithubDeployment "prod" $githubRepo $prodSitename "testName=John" @("$prodSitename.nickmeldrum.com")
 
             $siteDetails = Get-AzureWebsite $prodSitename
 
